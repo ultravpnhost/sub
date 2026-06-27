@@ -16,7 +16,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇩🇪 Германия",
+        remarks: "🇩🇪 Wi-Fi | Германия",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -29,7 +29,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇸🇪 Швеция",
+        remarks: "🇸🇪 Wi-Fi | Швеция",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -42,7 +42,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇵🇱 Польша",
+        remarks: "🇵🇱 Wi-Fi | Польша",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -55,7 +55,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇷🇺 Россия YT",
+        remarks: "🇷🇺 Wi-Fi | Россия",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -68,7 +68,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇩🇪📶 LTE №1",
+        remarks: "🇩🇪 LTE #1",
         network: "grpc",
         flow: "",
         grpcServiceName: "ads.x5.ru"  // добавлено из полного JSON
