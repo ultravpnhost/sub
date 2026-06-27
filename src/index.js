@@ -5,7 +5,7 @@ export default {
     const accept = request.headers.get("Accept") || "";
     const userAgent = request.headers.get("user-agent") || "";
 
-    // ---- Серверы ----
+    // ---- Серверы (с флагами в remarks для клиентов) ----
     const nodes = [
       {
         tag: "de-1",
@@ -16,7 +16,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "Германия",
+        remarks: "🇩🇪 Германия",  // с флагом
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -29,7 +29,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "Швеция",
+        remarks: "🇸🇪 Швеция",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -42,7 +42,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "Польша",
+        remarks: "🇵🇱 Польша",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -55,7 +55,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "Россия",
+        remarks: "🇷🇺 Россия",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -68,14 +68,14 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "LTE #1",
+        remarks: "🇩🇪 LTE #1",  // флаг Германии
         network: "grpc",
         flow: "",
         grpcServiceName: "ads.x5.ru"
       }
     ];
 
-    // ---- Функции генерации конфигов ----
+    // ---- Функции генерации конфигов (используют remarks с флагами) ----
     function makeOutbound({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, network, flow, grpcServiceName }) {
       const outbound = {
         tag: tag,
@@ -155,7 +155,7 @@ export default {
           { tag: "direct", protocol: "freedom" },
           { tag: "block", protocol: "blackhole" }
         ],
-        remarks: node.remarks,
+        remarks: node.remarks, // здесь флаг
         routing: {
           domainMatcher: "hybrid",
           domainStrategy: "IPIfNonMatch",
@@ -223,11 +223,15 @@ export default {
       });
     }
 
-    // ---- Подготовка данных для клиента ----
-    const serverNames = nodes.map(n => n.remarks);
-    const serverDataJson = JSON.stringify(serverNames);
+    // ---- Подготовка данных для клиента (только имена без флагов для интерфейса) ----
+    // Для интерфейса мы удаляем флаг из remarks (первый символ и пробел)
+    const displayNames = nodes.map(n => {
+      // убираем флаг (первый эмодзи и пробел)
+      return n.remarks.replace(/^[^\s]+\s/, ''); // удаляет первый символ (флаг) и пробел
+    });
+    const serverDataJson = JSON.stringify(displayNames);
 
-    // ---- ОБНОВЛЁННЫЙ ИНТЕРФЕЙС (LTE #1 теперь 100–200) ----
+    // ---- ОБНОВЛЁННЫЙ ИНТЕРФЕЙС (без флагов, но конфиги с флагами) ----
     const html = String.raw`
 <!DOCTYPE html>
 <html lang="ru">
@@ -483,7 +487,7 @@ export default {
 </div>
 
 <script>
-// Список имён серверов
+// Список имён серверов (без флагов) для интерфейса
 var serverNames = ${serverDataJson};
 var STORAGE_KEY = 'ultra_vpn_servers_data';
 var isUpdating = false;
@@ -493,7 +497,7 @@ function random(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// --- Диапазоны: LTE #1 теперь 100-200 ---
+// --- Диапазоны (по именам без флага) ----
 function getPingRange(name) {
     if (name === 'Россия') return { min: 8, max: 42 };
     return { min: 60, max: 120 };
