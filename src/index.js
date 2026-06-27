@@ -5,7 +5,7 @@ export default {
     const accept = request.headers.get("Accept") || "";
     const userAgent = request.headers.get("user-agent") || "";
 
-    // ---- 5 серверов (LTE обновлён на grpc) ----
+    // ---- 5 серверов (LTE обновлён по полному JSON) ----
     const nodes = [
       {
         tag: "de-1",
@@ -55,7 +55,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇷🇺 Youtube",
+        remarks: "🇷🇺 Россия YT",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -68,14 +68,15 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇩🇪 LTE #1",
+        remarks: "🇩🇪📶 LTE №1",
         network: "grpc",
-        flow: "" // пусто, т.к. в ссылке flow=
+        flow: "",
+        grpcServiceName: "ads.x5.ru"  // добавлено из полного JSON
       }
     ];
 
-    // ---- Функция генерации конфига ----
-    function makeConfig({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, remarks, network, flow }) {
+    // ---- Функция генерации outbound ----
+    function makeOutbound({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, network, flow, grpcServiceName }) {
       const outbound = {
         tag: tag,
         protocol: "vless",
@@ -105,13 +106,15 @@ export default {
           }
         }
       };
-      // Добавляем flow только если он не пустой
+      // Добавляем flow, если он не пустой
       if (flow) {
         outbound.settings.vnext[0].users[0].flow = flow;
       }
-      // Для grpc добавляем пустой grpcSettings (по аналогии с tcpSettings)
+      // Добавляем настройки для конкретной сети
       if (network === "grpc") {
-        outbound.streamSettings.grpcSettings = {};
+        outbound.streamSettings.grpcSettings = {
+          serviceName: grpcServiceName || ""  // если не задано, пустая строка
+        };
       } else {
         outbound.streamSettings.tcpSettings = {};
       }
@@ -120,7 +123,7 @@ export default {
 
     // ---- Полный объект конфига (как в vpn.json) ----
     function makeFullConfig(node) {
-      const outbound = makeConfig(node);
+      const outbound = makeOutbound(node);
       return {
         dns: {
           servers: ["1.1.1.1", "1.0.0.1"],
@@ -223,7 +226,7 @@ export default {
       });
     }
 
-    // ---- ВЕБ-ИНТЕРФЕЙС ----
+    // ---- ВЕБ-ИНТЕРФЕЙС (минималистичный дашборд) ----
     const html = `<!DOCTYPE html>
 <html lang="ru">
 <head>
