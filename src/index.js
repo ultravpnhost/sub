@@ -227,7 +227,7 @@ export default {
     const serverNames = nodes.map(n => n.remarks);
     const serverDataJson = JSON.stringify(serverNames);
 
-    // ---- ОБНОВЛЁННЫЙ ИНТЕРФЕЙС (с диапазоном для Германии) ----
+    // ---- ОБНОВЛЁННЫЙ ИНТЕРФЕЙС (LTE #1 теперь 100–200) ----
     const html = String.raw`
 <!DOCTYPE html>
 <html lang="ru">
@@ -493,15 +493,15 @@ function random(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// --- Диапазоны ---
+// --- Диапазоны: LTE #1 теперь 100-200 ---
 function getPingRange(name) {
     if (name === 'Россия') return { min: 8, max: 42 };
     return { min: 60, max: 120 };
 }
 function getSpeedRange(name) {
     if (name === 'Россия') return { min: 50, max: 150 };
-    if (name === 'Германия') return { min: 100, max: 200 }; // Уникальный диапазон для Германии
-    return { min: 50, max: 200 }; // Швеция, Польша, LTE #1 и другие
+    if (name === 'Германия' || name === 'LTE #1') return { min: 100, max: 200 };
+    return { min: 50, max: 200 };
 }
 
 // --- Генерация полностью случайных данных ---
@@ -520,7 +520,7 @@ function generateRandomData() {
     return result;
 }
 
-// --- Генерация данных с плавной вариацией (на основе старых) ---
+// --- Генерация данных с плавной вариацией ---
 function generateVariantData(oldData) {
     var result = [];
     for (var i = 0; i < oldData.length; i++) {
@@ -528,11 +528,9 @@ function generateVariantData(oldData) {
         var name = old.name;
         var pr = getPingRange(name);
         var sr = getSpeedRange(name);
-        // Пинг: ±30%
         var pingDelta = Math.round(old.ping * 0.3);
         var newPing = old.ping + random(-pingDelta, pingDelta);
         newPing = Math.min(Math.max(newPing, pr.min), pr.max);
-        // Скорость: ±30%
         var speedDelta = Math.round(old.speed * 0.3);
         var newSpeed = old.speed + random(-speedDelta, speedDelta);
         newSpeed = Math.min(Math.max(newSpeed, sr.min), sr.max);
