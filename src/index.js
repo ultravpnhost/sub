@@ -1,11 +1,13 @@
 export default {
   async fetch(request, env, ctx) {
-    const profileTitleBase64 = "VWx0cmEgVlBOIFBsdXM="; // Base64 для "Ultra VPN Plus"
+    // --- ДАННЫЕ ПОДПИСКИ ---
+    // 1. Название подписки (Base64)
+    const profileTitleBase64 = "VWx0cmEgVlBOIFBsdXM="; 
+    
+    // 2. Анонс (вставляем прямо в заголовок, как принято в современных подписках)
+    const announceStr = "Ultra VPN Plus — стабильное и быстрое подключение без ограничений.";
 
-    // Твой анонс (теперь он точно на месте и вернется первой строкой)
-    const announceStr = "#announce: Ultra VPN Plus — стабильное и быстрое подключение без ограничений.\n";
-
-    // Твои 5 оригинальных рабочих конфигов в формате JSON-объектов
+    // 3. Конфигурации
     const configsObj = [
       {
         "dns": { "queryStrategy": "UseIP", "servers": [ { "address": "8.8.8.8", "skipFallback": false } ], "tag": "dns_out" },
@@ -139,24 +141,24 @@ export default {
       }
     ];
 
-    // Сериализуем объект конфигураций в чистую JSON строку
     const cleanJson = JSON.stringify(configsObj);
 
-    // Склеиваем анонс и чистый JSON
-    const finalPayload = announceStr + cleanJson;
-
     const newHeaders = new Headers();
-    // Отдаем как текст, чтобы клиенты могли легко прочесть и анонс, и JSON-массив
-    newHeaders.set("Content-Type", "text/plain; charset=utf-8");
+    newHeaders.set("Content-Type", "application/json; charset=utf-8");
     
-    // Передаем параметры заголовков
+    // ВСТРАИВАЕМ ВСЁ В ЗАГОЛОВКИ
     newHeaders.set("profile-title", `base64:${profileTitleBase64}`);
-    
-    // Статистика: потрачено 357 GB (download=383331401728) из 5 TB (total=5497558138880)
-    newHeaders.set("subscription-userinfo", "upload=0; download=383331401728; total=5497558138880; expire=1899589200");
     newHeaders.set("profile-update-interval", "1");
+    // Используем announce-заголовок, который понимают почти все клиенты
+    newHeaders.set("profile-notice", announceStr);
+    
+    // Трафик: 357 ГБ из 5 ТБ
+    // download (использовано) = 383331401728 байт
+    // total (всего) = 5497558138880 байт
+    newHeaders.set("subscription-userinfo", "upload=0; download=383331401728; total=5497558138880; expire=1899589200");
+    
     newHeaders.set("Access-Control-Allow-Origin", "*");
 
-    return new Response(finalPayload, { status: 200, headers: newHeaders });
+    return new Response(cleanJson, { status: 200, headers: newHeaders });
   }
 };
