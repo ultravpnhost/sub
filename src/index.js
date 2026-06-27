@@ -6,9 +6,8 @@ export default {
     const accept = request.headers.get("Accept") || "";
     const userAgent = request.headers.get("user-agent") || "";
 
-    // ---- Обработка POST /reset-devices (сброс всех устройств) ----
+    // ---- Обработка POST /reset-devices ----
     if (path === '/reset-devices' && method === 'POST') {
-      // Эмуляция сброса – клиент сам очистит localStorage
       return new Response(JSON.stringify({ success: true, message: "Все устройства отключены" }), {
         headers: {
           "Content-Type": "application/json; charset=utf-8",
@@ -17,7 +16,7 @@ export default {
       });
     }
 
-    // ---- Ваши 5 серверов (без изменений) ----
+    // ---- Ваши 5 серверов ----
     const nodes = [
       {
         tag: "de-1",
@@ -235,8 +234,8 @@ export default {
       });
     }
 
-    // ---- ОБНОВЛЁННЫЙ ВЕБ-ИНТЕРФЕЙС с двумя страницами ----
-    const html = `<!DOCTYPE html>
+    // ---- ОБНОВЛЁННЫЙ HTML-ИНТЕРФЕЙС (без ошибок) ----
+    const html = String.raw`<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -256,7 +255,6 @@ export default {
             --date-color: #fca5a5;
             --progress-bg: #27272a;
             --progress-fill: #3b82f6;
-            --card-bg-solid: #141a24;
         }
         body { 
             font-family: 'Segoe UI', system-ui, sans-serif; 
@@ -396,7 +394,6 @@ export default {
         }
         .toast.show { opacity: 1; }
 
-        /* Список устройств */
         .device-list {
             text-align: left;
             margin-top: 10px;
@@ -540,7 +537,7 @@ export default {
                 <h2>Устройства</h2>
             </div>
             <div id="deviceListContainer">
-                <!-- Список будет отрисован JS -->
+                <!-- список будет отрисован JS -->
             </div>
         </div>
     </div>
@@ -550,7 +547,6 @@ export default {
 
 <script>
     (function() {
-        // --- Работа с localStorage для хранения устройств ---
         const STORAGE_KEY = 'ultra_vpn_devices';
         const DEFAULT_DEVICES = [
             { id: 'dev1', name: 'Happ-Windows', active: true },
@@ -568,7 +564,6 @@ export default {
                     if (Array.isArray(parsed) && parsed.length > 0) return parsed;
                 }
             } catch (e) {}
-            // Если нет данных, инициализируем и сохраняем
             localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DEVICES));
             return DEFAULT_DEVICES.slice();
         }
@@ -577,7 +572,6 @@ export default {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
         }
 
-        // --- DOM элементы ---
         const pageMain = document.getElementById('page-main');
         const pageDevices = document.getElementById('page-devices');
         const deviceCountMain = document.getElementById('deviceCountMain');
@@ -588,7 +582,6 @@ export default {
         const devicesBlock = document.getElementById('devicesBlock');
         const toast = document.getElementById('toast');
 
-        // --- Утилиты ---
         function showToast(msg, duration = 2000) {
             toast.textContent = msg;
             toast.classList.add('show');
@@ -615,40 +608,24 @@ export default {
                 if (activeDevices.length > 0) {
                     html += '<div class="section-title">Активные</div>';
                     activeDevices.forEach(d => {
-                        html += `
-                            <div class="device-item">
-                                <span class="device-name">
-                                    <span class="status-dot online"></span>
-                                    ${d.name}
-                                </span>
-                                <div class="device-actions">
-                                    <button class="btn-kick" data-id="${d.id}">Отключить</button>
-                                </div>
-                            </div>
-                        `;
+                        html += '<div class="device-item">' +
+                            '<span class="device-name"><span class="status-dot online"></span>' + d.name + '</span>' +
+                            '<div class="device-actions"><button class="btn-kick" data-id="' + d.id + '">Отключить</button></div>' +
+                            '</div>';
                     });
                 }
                 if (inactiveDevices.length > 0) {
                     html += '<div class="section-title">Отключённые</div>';
                     inactiveDevices.forEach(d => {
-                        html += `
-                            <div class="device-item disabled">
-                                <span class="device-name">
-                                    <span class="status-dot offline"></span>
-                                    ${d.name}
-                                    <span class="offline-label">🔴 Отключено</span>
-                                </span>
-                                <div class="device-actions">
-                                    <button class="btn-restore" data-id="${d.id}">Восстановить</button>
-                                </div>
-                            </div>
-                        `;
+                        html += '<div class="device-item disabled">' +
+                            '<span class="device-name"><span class="status-dot offline"></span>' + d.name + ' <span class="offline-label">🔴 Отключено</span></span>' +
+                            '<div class="device-actions"><button class="btn-restore" data-id="' + d.id + '">Восстановить</button></div>' +
+                            '</div>';
                     });
                 }
             }
             deviceListContainer.innerHTML = html;
 
-            // Обработчики для кнопок Отключить / Восстановить
             document.querySelectorAll('.btn-kick').forEach(btn => {
                 btn.addEventListener('click', function(e) {
                     e.stopPropagation();
@@ -699,7 +676,6 @@ export default {
             showToast('✅ Все устройства отключены', 1500);
         }
 
-        // --- Переключение страниц ---
         function showPage(page) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById('page-' + page).classList.add('active');
@@ -709,42 +685,22 @@ export default {
             }
         }
 
-        // --- Инициализация ---
         function init() {
             const devices = loadDevices();
             updateMainStats(devices);
 
-            // Клик по блоку "Устройства" на главной
             devicesBlock.addEventListener('click', function() {
                 showPage('devices');
             });
 
-            // Кнопка "Назад"
             backBtn.addEventListener('click', function() {
                 showPage('main');
             });
 
-            // Кнопка "Отключить все" на главной
             resetAllBtn.addEventListener('click', resetAllDevices);
-
-            // При загрузке страницы также обновляем список устройств (если уже на странице устройств)
-            // Но мы не знаем, какая страница активна, поэтому слушаем событие показа страницы
         }
 
-        // Если пользователь захочет обновить список на странице устройств при повторном входе
-        // Мы вызываем renderDeviceList при переключении.
-
         init();
-
-        // Дополнительно: чтобы при загрузке страницы устройств (если она активна) отрисовался список
-        // Проверим, если страница устройств видна изначально (но по умолчанию скрыта)
-        // Мы вызываем render при первом открытии.
-        // Сделаем так: при первом клике на устройствах вызывается renderDeviceList.
-        // Но уже сделано в showPage.
-        // Также можно добавить обработчик для восстановления состояния после перезагрузки, если страница устройств была активна.
-
-        // Экспортируем функции для отладки (опционально)
-        window.__devices = { loadDevices, saveDevices, kickDevice, restoreDevice, resetAllDevices };
     })();
 </script>
 </body>
