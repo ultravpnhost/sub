@@ -5,7 +5,7 @@ export default {
     const accept = request.headers.get("Accept") || "";
     const userAgent = request.headers.get("user-agent") || "";
 
-    // ---- 5 серверов (LTE обновлён по полному JSON) ----
+    // ---- Ваши 5 серверов (LTE обновлён по полному JSON) ----
     const nodes = [
       {
         tag: "de-1",
@@ -16,7 +16,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇩🇪 Wi-Fi | Германия",
+        remarks: "🇩🇪 Германия⚡",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -29,7 +29,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇸🇪 Wi-Fi | Швеция",
+        remarks: "🇸🇪 Швеция⚡",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -42,7 +42,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇵🇱 Wi-Fi | Польша",
+        remarks: "🇵🇱 Польша",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -55,7 +55,7 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇷🇺 Wi-Fi | Россия",
+        remarks: "🇷🇺 Россия",
         network: "tcp",
         flow: "xtls-rprx-vision"
       },
@@ -68,10 +68,10 @@ export default {
         publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic",
         shortId: "abbcd128",
         fingerprint: "qq",
-        remarks: "🇩🇪 LTE #1",
+        remarks: "🇩🇪 LTE №1 ⚡",
         network: "grpc",
         flow: "",
-        grpcServiceName: "ads.x5.ru"  // добавлено из полного JSON
+        grpcServiceName: "ads.x5.ru"
       }
     ];
 
@@ -106,14 +106,12 @@ export default {
           }
         }
       };
-      // Добавляем flow, если он не пустой
       if (flow) {
         outbound.settings.vnext[0].users[0].flow = flow;
       }
-      // Добавляем настройки для конкретной сети
       if (network === "grpc") {
         outbound.streamSettings.grpcSettings = {
-          serviceName: grpcServiceName || ""  // если не задано, пустая строка
+          serviceName: grpcServiceName || ""
         };
       } else {
         outbound.streamSettings.tcpSettings = {};
@@ -121,7 +119,7 @@ export default {
       return outbound;
     }
 
-    // ---- Полный объект конфига (как в vpn.json) ----
+    // ---- Полный объект конфига ----
     function makeFullConfig(node) {
       const outbound = makeOutbound(node);
       return {
@@ -211,7 +209,7 @@ export default {
 
     if (wantsJson) {
       const configs = nodes.map(n => makeFullConfig(n));
-      const expireTimestamp = 1899589200; // 13.03.2030
+      const expireTimestamp = 1899589200;
 
       return new Response(JSON.stringify(configs, null, 2), {
         headers: {
@@ -226,7 +224,7 @@ export default {
       });
     }
 
-    // ---- ВЕБ-ИНТЕРФЕЙС (минималистичный дашборд) ----
+    // ---- ОБНОВЛЁННЫЙ ВЕБ-ИНТЕРФЕЙС (с устройствами) ----
     const html = `<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -243,6 +241,8 @@ export default {
             --text: #e4e4e7;
             --dim: #71717a;
             --date-color: #fca5a5;
+            --progress-bg: #27272a;
+            --progress-fill: #3b82f6;
         }
         body { 
             font-family: 'Segoe UI', system-ui, sans-serif; 
@@ -283,11 +283,58 @@ export default {
             border: 1px solid var(--border);
             margin-bottom: 25px;
         }
-        .stat-row { margin-bottom: 15px; }
+        .stat-row { 
+            margin-bottom: 15px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
         .stat-row:last-child { margin-bottom: 0; }
-        .stat-label { font-size: 11px; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
-        .stat-value { font-size: 17px; font-weight: bold; }
+        .stat-label { 
+            font-size: 11px; 
+            color: var(--dim); 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+        }
+        .stat-value { 
+            font-size: 17px; 
+            font-weight: bold; 
+        }
         .date-value { color: var(--date-color); }
+        .devices-row {
+            margin-top: 15px;
+            border-top: 1px solid #27272a;
+            padding-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .devices-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+        .devices-header .count {
+            font-weight: 600;
+            color: #e4e4e7;
+        }
+        .devices-header .limit {
+            color: var(--dim);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: var(--progress-bg);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--progress-fill);
+            border-radius: 99px;
+            transition: width 0.3s ease;
+            width: 20%; /* 1 из 5 = 20% */
+        }
         .footer { font-size: 14px; color: var(--dim); }
         a { color: var(--accent); text-decoration: none; transition: 0.2s; }
         a:hover { opacity: 0.8; }
@@ -301,12 +348,22 @@ export default {
         
         <div class="stat-box">
             <div class="stat-row">
-                <div class="stat-label">Доступный трафик</div>
-                <div class="stat-value">357 GB / Безлимит</div>
+                <span class="stat-label">Доступный трафик</span>
+                <span class="stat-value">357 GB / ∞</span>
             </div>
-            <div class="stat-row" style="margin-top: 15px; border-top: 1px solid #27272a; padding-top: 15px;">
-                <div class="stat-label">Истекает</div>
-                <div class="stat-value date-value">13.03.2030</div>
+            <div class="stat-row">
+                <span class="stat-label">Истекает</span>
+                <span class="stat-value date-value">13.03.2030</span>
+            </div>
+            <!-- НОВАЯ СТРОКА: Устройства -->
+            <div class="devices-row">
+                <div class="devices-header">
+                    <span class="stat-label">Устройства</span>
+                    <span class="count">1 <span class="limit">/ 5</span></span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 20%;"></div>
+                </div>
             </div>
         </div>
 
