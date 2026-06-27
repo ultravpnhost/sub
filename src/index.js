@@ -2,10 +2,23 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
+    const method = request.method;
     const accept = request.headers.get("Accept") || "";
     const userAgent = request.headers.get("user-agent") || "";
 
-    // ---- Ваши 5 серверов (LTE обновлён по полному JSON) ----
+    // ---- Обработка POST /reset-devices ----
+    if (path === '/reset-devices' && method === 'POST') {
+      // Здесь в будущем будет очистка KV или Durable Object
+      // Сейчас просто возвращаем успех
+      return new Response(JSON.stringify({ success: true, message: "Все устройства отключены" }), {
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
+    }
+
+    // ---- Ваши 5 серверов ----
     const nodes = [
       {
         tag: "de-1",
@@ -75,7 +88,7 @@ export default {
       }
     ];
 
-    // ---- Функция генерации outbound ----
+    // ---- Функции генерации конфигов (без изменений) ----
     function makeOutbound({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, network, flow, grpcServiceName }) {
       const outbound = {
         tag: tag,
@@ -119,7 +132,6 @@ export default {
       return outbound;
     }
 
-    // ---- Полный объект конфига ----
     function makeFullConfig(node) {
       const outbound = makeOutbound(node);
       return {
@@ -224,7 +236,7 @@ export default {
       });
     }
 
-    // ---- ОБНОВЛЁННЫЙ ВЕБ-ИНТЕРФЕЙС (с устройствами) ----
+    // ---- ОБНОВЛЁННЫЙ ВЕБ-ИНТЕРФЕЙС (с кнопкой отключения) ----
     const html = `<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -238,6 +250,7 @@ export default {
             --border: #27272a;
             --accent: #3b82f6;
             --success: #16a34a;
+            --danger: #ef4444;
             --text: #e4e4e7;
             --dim: #71717a;
             --date-color: #fca5a5;
@@ -333,11 +346,47 @@ export default {
             background: var(--progress-fill);
             border-radius: 99px;
             transition: width 0.3s ease;
-            width: 20%; /* 1 из 5 = 20% */
+            width: 20%;
         }
-        .footer { font-size: 14px; color: var(--dim); }
+        .reset-btn {
+            margin-top: 16px;
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 10px 20px;
+            border-radius: 99px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+        }
+        .reset-btn:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: var(--danger);
+        }
+        .reset-btn:active { transform: scale(0.97); }
+        .footer { font-size: 14px; color: var(--dim); margin-top: 20px; }
         a { color: var(--accent); text-decoration: none; transition: 0.2s; }
         a:hover { opacity: 0.8; }
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #e4e9f0;
+            padding: 12px 28px;
+            border-radius: 40px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+            font-size: 0.95rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            border: 1px solid #334155;
+            z-index: 999;
+        }
+        .toast.show { opacity: 1; }
     </style>
 </head>
 <body>
@@ -355,22 +404,67 @@ export default {
                 <span class="stat-label">Истекает</span>
                 <span class="stat-value date-value">13.03.2030</span>
             </div>
-            <!-- НОВАЯ СТРОКА: Устройства -->
             <div class="devices-row">
                 <div class="devices-header">
                     <span class="stat-label">Устройства</span>
-                    <span class="count">1 <span class="limit">/ 5</span></span>
+                    <span class="count" id="deviceCount">1 <span class="limit">/ 5</span></span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" style="width: 20%;"></div>
+                    <div class="progress-fill" id="deviceProgress" style="width: 20%;"></div>
                 </div>
             </div>
         </div>
+
+        <button class="reset-btn" id="resetDevicesBtn">🔴 Отключить все устройства</button>
 
         <div class="footer">
             Вопросы? <a href="https://t.me/fhcsupport">@fhcsupport</a>
         </div>
     </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        (function() {
+            const resetBtn = document.getElementById('resetDevicesBtn');
+            const deviceCount = document.getElementById('deviceCount');
+            const deviceProgress = document.getElementById('deviceProgress');
+            const toast = document.getElementById('toast');
+
+            function showToast(message, duration = 2000) {
+                toast.textContent = message;
+                toast.classList.add('show');
+                clearTimeout(toast._timer);
+                toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
+            }
+
+            resetBtn.addEventListener('click', async function() {
+                if (!confirm('Вы уверены, что хотите отключить все устройства?')) return;
+                
+                resetBtn.disabled = true;
+                resetBtn.textContent = '⏳ Отключение...';
+                
+                try {
+                    const response = await fetch('/reset-devices', { method: 'POST' });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Обновляем счётчик на 0 / 5
+                        deviceCount.innerHTML = '0 <span class="limit">/ 5</span>';
+                        deviceProgress.style.width = '0%';
+                        showToast('✅ Все устройства отключены');
+                    } else {
+                        showToast('❌ Ошибка: ' + (data.message || 'неизвестная ошибка'));
+                    }
+                } catch (err) {
+                    showToast('❌ Ошибка соединения с сервером');
+                } finally {
+                    resetBtn.disabled = false;
+                    resetBtn.textContent = '🔴 Отключить все устройства';
+                }
+            });
+        })();
+    </script>
 </body>
 </html>`;
 
