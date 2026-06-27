@@ -6,10 +6,9 @@ export default {
     const accept = request.headers.get("Accept") || "";
     const userAgent = request.headers.get("user-agent") || "";
 
-    // ---- Обработка POST /reset-devices ----
+    // ---- Обработка POST /reset-devices (сброс всех устройств) ----
     if (path === '/reset-devices' && method === 'POST') {
-      // Здесь в будущем будет очистка KV или Durable Object
-      // Сейчас просто возвращаем успех
+      // Эмуляция сброса – клиент сам очистит localStorage
       return new Response(JSON.stringify({ success: true, message: "Все устройства отключены" }), {
         headers: {
           "Content-Type": "application/json; charset=utf-8",
@@ -18,7 +17,7 @@ export default {
       });
     }
 
-    // ---- Ваши 5 серверов ----
+    // ---- Ваши 5 серверов (без изменений) ----
     const nodes = [
       {
         tag: "de-1",
@@ -236,7 +235,7 @@ export default {
       });
     }
 
-    // ---- ОБНОВЛЁННЫЙ ВЕБ-ИНТЕРФЕЙС (с кнопкой отключения) ----
+    // ---- ОБНОВЛЁННЫЙ ВЕБ-ИНТЕРФЕЙС с двумя страницами ----
     const html = `<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -244,6 +243,7 @@ export default {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ultra VPN Plus | Dashboard</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
             --bg: #09090b;
             --card-bg: linear-gradient(145deg, #18181b, #09090b);
@@ -256,6 +256,7 @@ export default {
             --date-color: #fca5a5;
             --progress-bg: #27272a;
             --progress-fill: #3b82f6;
+            --card-bg-solid: #141a24;
         }
         body { 
             font-family: 'Segoe UI', system-ui, sans-serif; 
@@ -266,14 +267,27 @@ export default {
             align-items: center; 
             min-height: 100vh; 
             margin: 0; 
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+        }
+        .page {
+            display: none;
+            animation: fadeIn 0.25s ease;
+        }
+        .page.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .card { 
             background: var(--card-bg); 
-            padding: 40px; 
+            padding: 30px; 
             border-radius: 24px; 
             border: 1px solid var(--border); 
-            width: 100%; 
-            max-width: 340px; 
             text-align: center; 
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
@@ -297,78 +311,71 @@ export default {
             margin-bottom: 25px;
         }
         .stat-row { 
-            margin-bottom: 15px; 
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 6px 0;
         }
-        .stat-row:last-child { margin-bottom: 0; }
-        .stat-label { 
-            font-size: 11px; 
-            color: var(--dim); 
-            text-transform: uppercase; 
-            letter-spacing: 0.5px;
-        }
-        .stat-value { 
-            font-size: 17px; 
-            font-weight: bold; 
-        }
+        .stat-row + .stat-row { border-top: 1px solid #27272a; margin-top: 10px; padding-top: 10px; }
+        .stat-label { font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 17px; font-weight: bold; }
         .date-value { color: var(--date-color); }
-        .devices-row {
-            margin-top: 15px;
-            border-top: 1px solid #27272a;
-            padding-top: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .devices-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-        }
-        .devices-header .count {
-            font-weight: 600;
-            color: #e4e4e7;
-        }
-        .devices-header .limit {
-            color: var(--dim);
-        }
+        .devices-clickable { cursor: pointer; transition: 0.2s; }
+        .devices-clickable:hover { opacity: 0.7; }
         .progress-bar {
             width: 100%;
             height: 6px;
             background: var(--progress-bg);
             border-radius: 99px;
             overflow: hidden;
+            margin-top: 4px;
         }
         .progress-fill {
             height: 100%;
             background: var(--progress-fill);
             border-radius: 99px;
             transition: width 0.3s ease;
-            width: 20%;
         }
-        .reset-btn {
-            margin-top: 16px;
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 99px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            transition: 0.2s;
+            width: 100%;
+            margin-top: 12px;
+        }
+        .btn-danger {
             background: rgba(239, 68, 68, 0.15);
             color: var(--danger);
             border: 1px solid rgba(239, 68, 68, 0.3);
-            padding: 10px 20px;
-            border-radius: 99px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
         }
-        .reset-btn:hover {
+        .btn-danger:hover {
             background: rgba(239, 68, 68, 0.25);
             border-color: var(--danger);
         }
-        .reset-btn:active { transform: scale(0.97); }
+        .btn-outline {
+            background: transparent;
+            color: var(--dim);
+            border: 1px solid var(--border);
+        }
+        .btn-outline:hover {
+            background: #1e293b;
+            color: var(--text);
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border: 1px solid var(--accent);
+        }
+        .btn-primary:hover { opacity: 0.8; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .footer { font-size: 14px; color: var(--dim); margin-top: 20px; }
-        a { color: var(--accent); text-decoration: none; transition: 0.2s; }
-        a:hover { opacity: 0.8; }
+        .footer a { color: var(--accent); text-decoration: none; }
+        .footer a:hover { opacity: 0.8; }
         .toast {
             position: fixed;
             bottom: 30px;
@@ -385,86 +392,361 @@ export default {
             pointer-events: none;
             border: 1px solid #334155;
             z-index: 999;
+            white-space: nowrap;
         }
         .toast.show { opacity: 1; }
+
+        /* Список устройств */
+        .device-list {
+            text-align: left;
+            margin-top: 10px;
+        }
+        .device-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: #111113;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            transition: 0.2s;
+        }
+        .device-item.disabled {
+            opacity: 0.5;
+            border-color: #3f3f46;
+        }
+        .device-name {
+            font-weight: 500;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .device-name .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .device-name .status-dot.online { background: var(--success); }
+        .device-name .status-dot.offline { background: var(--danger); }
+        .device-actions {
+            display: flex;
+            gap: 6px;
+        }
+        .device-actions button {
+            background: transparent;
+            border: none;
+            color: var(--dim);
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: 0.2s;
+        }
+        .device-actions button:hover { background: #1e293b; color: var(--text); }
+        .device-actions .btn-kick {
+            color: var(--danger);
+        }
+        .device-actions .btn-kick:hover { background: rgba(239,68,68,0.15); }
+        .device-actions .btn-restore {
+            color: var(--accent);
+        }
+        .device-actions .btn-restore:hover { background: rgba(59,130,246,0.15); }
+        .device-empty {
+            color: var(--dim);
+            font-size: 14px;
+            text-align: center;
+            padding: 20px 0;
+        }
+        .back-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .back-header button {
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+        .back-header button:hover { background: #1e293b; }
+        .back-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+        }
+        .section-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            color: var(--dim);
+            letter-spacing: 0.5px;
+            margin: 16px 0 8px 0;
+        }
+        .device-item .device-name .offline-label {
+            color: var(--danger);
+            font-size: 12px;
+            margin-left: 4px;
+        }
     </style>
 </head>
 <body>
-    <div class="card">
-        <span class="icon">🚀</span>
-        <h1>Ultra VPN Plus</h1>
-        <div class="badge">● Статус: Активен</div>
-        
-        <div class="stat-box">
-            <div class="stat-row">
-                <span class="stat-label">Доступный трафик</span>
-                <span class="stat-value">357 GB / ∞</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Истекает</span>
-                <span class="stat-value date-value">13.03.2030</span>
-            </div>
-            <div class="devices-row">
-                <div class="devices-header">
+<div class="container">
+    <!-- Главная страница -->
+    <div id="page-main" class="page active">
+        <div class="card">
+            <span class="icon">🚀</span>
+            <h1>Ultra VPN Plus</h1>
+            <div class="badge">● Статус: Активен</div>
+            
+            <div class="stat-box">
+                <div class="stat-row">
+                    <span class="stat-label">Доступный трафик</span>
+                    <span class="stat-value">357 GB / ∞</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Истекает</span>
+                    <span class="stat-value date-value">13.03.2030</span>
+                </div>
+                <div class="stat-row devices-clickable" id="devicesBlock">
                     <span class="stat-label">Устройства</span>
-                    <span class="count" id="deviceCount">1 <span class="limit">/ 5</span></span>
+                    <span class="stat-value" id="deviceCountMain">1 <span style="color:var(--dim); font-weight:400;">/ 5</span></span>
                 </div>
                 <div class="progress-bar">
-                    <div class="progress-fill" id="deviceProgress" style="width: 20%;"></div>
+                    <div class="progress-fill" id="deviceProgressMain" style="width: 20%;"></div>
                 </div>
             </div>
-        </div>
 
-        <button class="reset-btn" id="resetDevicesBtn">🔴 Отключить все устройства</button>
+            <button class="btn btn-danger" id="resetAllBtn">🔴 Отключить все устройства</button>
 
-        <div class="footer">
-            Вопросы? <a href="https://t.me/fhcsupport">@fhcsupport</a>
+            <div class="footer">
+                Вопросы? <a href="https://t.me/fhcsupport">@fhcsupport</a>
+            </div>
         </div>
     </div>
 
-    <div id="toast" class="toast"></div>
+    <!-- Страница списка устройств -->
+    <div id="page-devices" class="page">
+        <div class="card" style="padding: 20px;">
+            <div class="back-header">
+                <button id="backBtn">← Назад</button>
+                <h2>Устройства</h2>
+            </div>
+            <div id="deviceListContainer">
+                <!-- Список будет отрисован JS -->
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script>
-        (function() {
-            const resetBtn = document.getElementById('resetDevicesBtn');
-            const deviceCount = document.getElementById('deviceCount');
-            const deviceProgress = document.getElementById('deviceProgress');
-            const toast = document.getElementById('toast');
+<div id="toast" class="toast"></div>
 
-            function showToast(message, duration = 2000) {
-                toast.textContent = message;
-                toast.classList.add('show');
-                clearTimeout(toast._timer);
-                toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
-            }
+<script>
+    (function() {
+        // --- Работа с localStorage для хранения устройств ---
+        const STORAGE_KEY = 'ultra_vpn_devices';
+        const DEFAULT_DEVICES = [
+            { id: 'dev1', name: 'Happ-Windows', active: true },
+            { id: 'dev2', name: 'Incy-Android', active: true },
+            { id: 'dev3', name: 'sing-box-iOS', active: true },
+            { id: 'dev4', name: 'V2Ray-Mac', active: true },
+            { id: 'dev5', name: 'Clash-Linux', active: true }
+        ];
 
-            resetBtn.addEventListener('click', async function() {
-                if (!confirm('Вы уверены, что хотите отключить все устройства?')) return;
-                
-                resetBtn.disabled = true;
-                resetBtn.textContent = '⏳ Отключение...';
-                
-                try {
-                    const response = await fetch('/reset-devices', { method: 'POST' });
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        // Обновляем счётчик на 0 / 5
-                        deviceCount.innerHTML = '0 <span class="limit">/ 5</span>';
-                        deviceProgress.style.width = '0%';
-                        showToast('✅ Все устройства отключены');
-                    } else {
-                        showToast('❌ Ошибка: ' + (data.message || 'неизвестная ошибка'));
-                    }
-                } catch (err) {
-                    showToast('❌ Ошибка соединения с сервером');
-                } finally {
-                    resetBtn.disabled = false;
-                    resetBtn.textContent = '🔴 Отключить все устройства';
+        function loadDevices() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                if (data) {
+                    const parsed = JSON.parse(data);
+                    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
                 }
+            } catch (e) {}
+            // Если нет данных, инициализируем и сохраняем
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DEVICES));
+            return DEFAULT_DEVICES.slice();
+        }
+
+        function saveDevices(devices) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+        }
+
+        // --- DOM элементы ---
+        const pageMain = document.getElementById('page-main');
+        const pageDevices = document.getElementById('page-devices');
+        const deviceCountMain = document.getElementById('deviceCountMain');
+        const deviceProgressMain = document.getElementById('deviceProgressMain');
+        const deviceListContainer = document.getElementById('deviceListContainer');
+        const resetAllBtn = document.getElementById('resetAllBtn');
+        const backBtn = document.getElementById('backBtn');
+        const devicesBlock = document.getElementById('devicesBlock');
+        const toast = document.getElementById('toast');
+
+        // --- Утилиты ---
+        function showToast(msg, duration = 2000) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        function updateMainStats(devices) {
+            const active = devices.filter(d => d.active).length;
+            const total = 5;
+            const percent = Math.round((active / total) * 100);
+            deviceCountMain.innerHTML = active + ' <span style="color:var(--dim); font-weight:400;">/ ' + total + '</span>';
+            deviceProgressMain.style.width = percent + '%';
+        }
+
+        function renderDeviceList(devices) {
+            const activeDevices = devices.filter(d => d.active);
+            const inactiveDevices = devices.filter(d => !d.active);
+
+            let html = '';
+            if (activeDevices.length === 0 && inactiveDevices.length === 0) {
+                html = '<div class="device-empty">Нет устройств</div>';
+            } else {
+                if (activeDevices.length > 0) {
+                    html += '<div class="section-title">Активные</div>';
+                    activeDevices.forEach(d => {
+                        html += `
+                            <div class="device-item">
+                                <span class="device-name">
+                                    <span class="status-dot online"></span>
+                                    ${d.name}
+                                </span>
+                                <div class="device-actions">
+                                    <button class="btn-kick" data-id="${d.id}">Отключить</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                if (inactiveDevices.length > 0) {
+                    html += '<div class="section-title">Отключённые</div>';
+                    inactiveDevices.forEach(d => {
+                        html += `
+                            <div class="device-item disabled">
+                                <span class="device-name">
+                                    <span class="status-dot offline"></span>
+                                    ${d.name}
+                                    <span class="offline-label">🔴 Отключено</span>
+                                </span>
+                                <div class="device-actions">
+                                    <button class="btn-restore" data-id="${d.id}">Восстановить</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            }
+            deviceListContainer.innerHTML = html;
+
+            // Обработчики для кнопок Отключить / Восстановить
+            document.querySelectorAll('.btn-kick').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = this.dataset.id;
+                    kickDevice(id);
+                });
             });
-        })();
-    </script>
+            document.querySelectorAll('.btn-restore').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = this.dataset.id;
+                    restoreDevice(id);
+                });
+            });
+        }
+
+        function kickDevice(id) {
+            let devices = loadDevices();
+            const idx = devices.findIndex(d => d.id === id);
+            if (idx !== -1 && devices[idx].active) {
+                devices[idx].active = false;
+                saveDevices(devices);
+                renderDeviceList(devices);
+                updateMainStats(devices);
+                showToast('🔴 Устройство отключено', 1500);
+            }
+        }
+
+        function restoreDevice(id) {
+            let devices = loadDevices();
+            const idx = devices.findIndex(d => d.id === id);
+            if (idx !== -1 && !devices[idx].active) {
+                devices[idx].active = true;
+                saveDevices(devices);
+                renderDeviceList(devices);
+                updateMainStats(devices);
+                showToast('✅ Устройство восстановлено', 1500);
+            }
+        }
+
+        function resetAllDevices() {
+            if (!confirm('Отключить все устройства?')) return;
+            let devices = loadDevices();
+            devices.forEach(d => d.active = false);
+            saveDevices(devices);
+            renderDeviceList(devices);
+            updateMainStats(devices);
+            showToast('✅ Все устройства отключены', 1500);
+        }
+
+        // --- Переключение страниц ---
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + page).classList.add('active');
+            if (page === 'devices') {
+                const devices = loadDevices();
+                renderDeviceList(devices);
+            }
+        }
+
+        // --- Инициализация ---
+        function init() {
+            const devices = loadDevices();
+            updateMainStats(devices);
+
+            // Клик по блоку "Устройства" на главной
+            devicesBlock.addEventListener('click', function() {
+                showPage('devices');
+            });
+
+            // Кнопка "Назад"
+            backBtn.addEventListener('click', function() {
+                showPage('main');
+            });
+
+            // Кнопка "Отключить все" на главной
+            resetAllBtn.addEventListener('click', resetAllDevices);
+
+            // При загрузке страницы также обновляем список устройств (если уже на странице устройств)
+            // Но мы не знаем, какая страница активна, поэтому слушаем событие показа страницы
+        }
+
+        // Если пользователь захочет обновить список на странице устройств при повторном входе
+        // Мы вызываем renderDeviceList при переключении.
+
+        init();
+
+        // Дополнительно: чтобы при загрузке страницы устройств (если она активна) отрисовался список
+        // Проверим, если страница устройств видна изначально (но по умолчанию скрыта)
+        // Мы вызываем render при первом открытии.
+        // Сделаем так: при первом клике на устройствах вызывается renderDeviceList.
+        // Но уже сделано в showPage.
+        // Также можно добавить обработчик для восстановления состояния после перезагрузки, если страница устройств была активна.
+
+        // Экспортируем функции для отладки (опционально)
+        window.__devices = { loadDevices, saveDevices, kickDevice, restoreDevice, resetAllDevices };
+    })();
+</script>
 </body>
 </html>`;
 
