@@ -5,7 +5,7 @@ export default {
     const accept = request.headers.get("Accept") || "";
     const userAgent = request.headers.get("user-agent") || "";
 
-    // ---- Константы для трафика ----
+    // ---- Константы для трафика (10-30 GB в день) ----
     const START_DATE = new Date('2026-06-20T00:00:00Z');
     const BASE_TRAFFIC_GB = 806;
 
@@ -30,10 +30,11 @@ export default {
     }
 
     const usedTraffic = getCurrentTrafficGB();
-    const expireTimestamp = 1899589200;
+    const expireTimestamp = 1899589200; // 13.03.2030
+    const subscriptionTitle = "Ultra VPN Plus";
     const announcementText = "🔥 Новые серверы в Германии и LTE! Подписка активна до 2030 года. Вопросы в @fhcsupport";
 
-    // ---- Серверы ----
+    // ---- Серверы (с флагами для клиентов) ----
     const nodes = [
       {
         tag: "de-1",
@@ -103,7 +104,7 @@ export default {
       }
     ];
 
-    // ---- Функции генерации конфигов ----
+    // ---- Функции генерации конфигов (для /json) ----
     function makeOutbound({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, network, flow, grpcServiceName }) {
       const outbound = {
         tag: tag,
@@ -226,13 +227,53 @@ export default {
       };
     }
 
-    // ---- Условия для JSON ----
+    // ---- Функция для генерации VLESS-ссылки ----
+    function buildVlessLink(node) {
+      let link = `vless://${node.id}@${node.address}:${node.port}`;
+      link += `?encryption=none`;
+      if (node.flow) {
+        link += `&flow=${node.flow}`;
+      }
+      link += `&security=reality&sni=${node.serverName}&fp=${node.fingerprint}&pbk=${node.publicKey}&sid=${node.shortId}`;
+      link += `#${encodeURIComponent(node.remarks)}`;
+      return link;
+    }
+
+    // ============================================================
+    // 1. /wlbypass — отдаёт plain text с заголовками в теле
+    // ============================================================
+    if (path === '/wlbypass') {
+      const headerLines = [
+        `#profile-title: ${subscriptionTitle}`,
+        `#profile-update-interval: 1`,
+        `#subscription-userinfo: expire=${expireTimestamp}`
+      ];
+      const linkLines = nodes.map(node => buildVlessLink(node));
+      const body = headerLines.concat('', linkLines).join('\n');
+
+      return new Response(body, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Access-Control-Allow-Origin': '*',
+          'Profile-Title': subscriptionTitle,
+          'profile-title': subscriptionTitle,
+          'Subscription-Status': 'active',
+          'Subscription-Traffic': `${usedTraffic} GB / ∞`,
+          'Subscription-Expire': String(expireTimestamp),
+          'subscription-userinfo': `upload=0; download=${usedTraffic * 1024 * 1024 * 1024}; total=0; expire=${expireTimestamp}`
+        }
+      });
+    }
+
+    // ============================================================
+    // 2. /json — отдаёт JSON для клиентов
+    // ============================================================
     const wantsJson = (path === '/json') 
                    || accept.includes('application/json')
                    || userAgent.includes('V2Ray') 
                    || userAgent.includes('Happ') 
                    || userAgent.includes('sing-box')
-                   || userAgent.includes('INCY');
+                   || userAgent.includes('INCy');
 
     if (wantsJson) {
       const configs = nodes.map(n => makeFullConfig(n));
@@ -241,20 +282,19 @@ export default {
       const commonHeaders = {
         "Content-Type": "application/json; charset=utf-8",
         "Access-Control-Allow-Origin": "*",
-        "Profile-Title": "Ultra VPN Plus",
+        "Profile-Title": subscriptionTitle,
+        "profile-title": subscriptionTitle,
         "Subscription-Status": "active",
         "Subscription-Traffic": usedTraffic + " GB / ∞",
         "Subscription-Expire": String(expireTimestamp),
-        "Subscription-Announcement": announcementText,
         "subscription-userinfo": `upload=0; download=${usedTrafficBytes}; total=0; expire=${expireTimestamp}`
       };
 
-      // ---- Для INCy возвращаем объект с полем announcement ----
       if (userAgent.includes('INCy')) {
         const responseBody = {
           servers: configs,
           subscription: {
-            title: "Ultra VPN Plus",
+            title: subscriptionTitle,
             traffic: usedTraffic + " GB / ∞",
             expire: expireTimestamp,
             status: "active",
@@ -265,18 +305,18 @@ export default {
           headers: commonHeaders
         });
       } else {
-        // Для остальных – массив (заголовки уже содержат announcement)
         return new Response(JSON.stringify(configs, null, 2), {
           headers: commonHeaders
         });
       }
     }
 
-    // ---- Подготовка данных для веб-интерфейса ----
+    // ============================================================
+    // 3. ВЕБ-ИНТЕРФЕЙС (для браузеров) — без изменений
+    // ============================================================
     const displayNames = nodes.map(n => n.remarks.replace(/^[^\s]+\s/, ''));
     const serverDataJson = JSON.stringify(displayNames);
 
-    // ---- ВЕБ-ИНТЕРФЕЙС (с объявлением) ----
     const html = String.raw`
 <!DOCTYPE html>
 <html lang="ru">
@@ -351,7 +391,6 @@ export default {
         .stat-label { font-size: 14px; color: #8b95a9; display: flex; align-items: center; gap: 8px; }
         .stat-value { font-size: 16px; font-weight: 600; }
         .stat-value .date { color: #fca5a5; }
-
         .announcement {
             background: #1e293b;
             border: 1px solid #334155;
@@ -366,7 +405,6 @@ export default {
         }
         .announcement-icon { font-size: 20px; }
         .announcement-text { flex: 1; }
-
         .btn-status {
             display: block;
             width: 100%;
@@ -517,7 +555,6 @@ export default {
                     <span class="stat-value date">13.03.2030</span>
                 </div>
             </div>
-            <!-- Блок объявления -->
             <div class="announcement">
                 <span class="announcement-icon">📢</span>
                 <span class="announcement-text">${announcementText}</span>
