@@ -3,7 +3,7 @@ export default {
     const userAgent = request.headers.get("user-agent") || "";
     const isClient = userAgent.includes("V2Ray") || userAgent.includes("Happ") || userAgent.includes("sing-box");
 
-    // ---- Только 5 серверов (LTE №2 и №3 удалены) ----
+    // ---- Ваши 5 серверов (LTE №2 и №3 удалены) ----
     const nodes = [
       {
         tag: "de-1",
@@ -62,7 +62,7 @@ export default {
       }
     ];
 
-    // ---- Функция генерации полного конфига (для клиентов) ----
+    // ---- Функция генерации полного конфига для Sing-box (как в vpn.json) ----
     function makeConfig({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, remarks }) {
       return {
         dns: {
@@ -171,7 +171,7 @@ export default {
       };
     }
 
-    // ---- Если запрос от VPN-клиента ----
+    // ---- Если запрос от VPN-клиента (V2Ray, Happ, sing-box) ----
     if (isClient) {
       const configs = nodes.map(n => makeConfig(n));
       return new Response(JSON.stringify(configs, null, 2), {
@@ -183,211 +183,96 @@ export default {
       });
     }
 
-    // ---- МИНИМАЛИСТИЧНЫЙ ВЕБ-ИНТЕРФЕЙС (без кнопок копирования/скачивания) ----
-    // Собираем карточки серверов (только общая информация)
-    const cardsHtml = nodes.map((n) => {
-      return `
-        <div class="server-card">
-          <div class="server-header">
-            <span class="flag">${n.remarks.split(' ')[0]}</span>
-            <span class="name">${n.remarks}</span>
-            <span class="status online"></span>
-          </div>
-          <div class="server-info">
-            <div class="info-item"><span class="label">Протокол:</span> vless</div>
-            <div class="info-item"><span class="label">Адрес:</span> ${n.address}</div>
-            <div class="info-item"><span class="label">Порт:</span> ${n.port}</div>
-            <div class="info-item"><span class="label">SNI:</span> ${n.serverName}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    const html = `
-<!DOCTYPE html>
+    // ---- ИНАЧЕ: ВЕБ-ИНТЕРФЕЙС (ваш минималистичный шаблон) ----
+    const html = `<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VPN подписка</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0b0e14;
-      color: #e4e9f0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .container {
-      max-width: 900px;
-      width: 100%;
-    }
-    .header {
-      text-align: center;
-      padding: 20px 0 30px;
-    }
-    .header h1 {
-      font-size: 2rem;
-      font-weight: 600;
-      background: linear-gradient(135deg, #58a6ff, #a78bfa);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      letter-spacing: -0.5px;
-    }
-    .header p {
-      color: #8b95a9;
-      font-size: 0.95rem;
-      margin-top: 4px;
-    }
-    .stats {
-      display: flex;
-      justify-content: space-between;
-      background: #141a24;
-      padding: 16px 24px;
-      border-radius: 12px;
-      border: 1px solid #1e293b;
-      margin-bottom: 30px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .stat-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 0.9rem;
-    }
-    .stat-item .label {
-      color: #8b949e;
-    }
-    .stat-item .value {
-      font-weight: 500;
-      color: #58a6ff;
-    }
-    .stat-item .online-status {
-      color: #22c55e;
-      font-weight: 500;
-    }
-    .servers-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-      gap: 20px;
-    }
-    .server-card {
-      background: #141a24;
-      border: 1px solid #1e293b;
-      border-radius: 14px;
-      padding: 18px 20px 20px;
-      transition: border-color 0.2s, transform 0.15s;
-    }
-    .server-card:hover {
-      border-color: #334155;
-      transform: translateY(-2px);
-    }
-    .server-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .flag {
-      font-size: 1.6rem;
-      line-height: 1;
-    }
-    .name {
-      font-weight: 600;
-      font-size: 1.1rem;
-      flex: 1;
-    }
-    .status {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-    .status.online {
-      background: #22c55e;
-      box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
-    }
-    .server-info {
-      font-size: 0.85rem;
-      line-height: 1.7;
-    }
-    .info-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 2px 0;
-      border-bottom: 1px solid #1a2230;
-    }
-    .info-item:last-child {
-      border-bottom: none;
-    }
-    .info-item .label {
-      color: #8b95a9;
-    }
-    .info-item .value {
-      color: #d1d5db;
-      word-break: break-all;
-      text-align: right;
-    }
-    .footer {
-      margin-top: 40px;
-      text-align: center;
-      color: #4b5563;
-      font-size: 0.8rem;
-    }
-    .footer a {
-      color: #58a6ff;
-      text-decoration: none;
-    }
-    @media (max-width: 600px) {
-      .header h1 { font-size: 1.6rem; }
-      .stats { flex-direction: column; align-items: flex-start; gap: 6px; }
-      .servers-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultra VPN Plus | Dashboard</title>
+    <style>
+        :root {
+            --bg: #09090b;
+            --card-bg: linear-gradient(145deg, #18181b, #09090b);
+            --border: #27272a;
+            --accent: #3b82f6;
+            --success: #16a34a;
+            --text: #e4e4e7;
+            --dim: #71717a;
+            --date-color: #fca5a5;
+        }
+        body { 
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+        }
+        .card { 
+            background: var(--card-bg); 
+            padding: 40px; 
+            border-radius: 24px; 
+            border: 1px solid var(--border); 
+            width: 100%; 
+            max-width: 340px; 
+            text-align: center; 
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .icon { font-size: 60px; margin-bottom: 10px; display: block; }
+        h1 { font-size: 26px; margin: 0 0 10px 0; letter-spacing: -0.5px; }
+        .badge { 
+            display: inline-block; 
+            background: rgba(22, 163, 74, 0.15); 
+            color: var(--success); 
+            padding: 4px 16px; 
+            border-radius: 99px; 
+            font-size: 13px; 
+            font-weight: 600; 
+            margin-bottom: 25px; 
+        }
+        .stat-box { 
+            background: #111113; 
+            padding: 20px; 
+            border-radius: 16px; 
+            border: 1px solid var(--border);
+            margin-bottom: 25px;
+        }
+        .stat-row { margin-bottom: 15px; }
+        .stat-row:last-child { margin-bottom: 0; }
+        .stat-label { font-size: 11px; color: var(--dim); text-transform: uppercase; margin-bottom: 4px; }
+        .stat-value { font-size: 17px; font-weight: bold; }
+        .date-value { color: var(--date-color); }
+        .footer { font-size: 14px; color: var(--dim); }
+        a { color: var(--accent); text-decoration: none; transition: 0.2s; }
+        a:hover { opacity: 0.8; }
+    </style>
 </head>
 <body>
-<div class="container">
-  <div class="header">
-    <h1>🔒 VPN Подписка</h1>
-    <p>Ваши активные серверы</p>
-  </div>
+    <div class="card">
+        <span class="icon">🚀</span>
+        <h1>Ultra VPN Plus</h1>
+        <div class="badge">● Статус: Активен</div>
+        
+        <div class="stat-box">
+            <div class="stat-row">
+                <div class="stat-label">Доступный трафик</div>
+                <div class="stat-value">357 GB / Безлимит</div>
+            </div>
+            <div class="stat-row" style="margin-top: 15px; border-top: 1px solid #27272a; padding-top: 15px;">
+                <div class="stat-label">Истекает</div>
+                <div class="stat-value date-value">13.03.2030</div>
+            </div>
+        </div>
 
-  <div class="stats">
-    <div class="stat-item">
-      <span class="label">Использовано:</span>
-      <span class="value">357 GB / ∞</span>
+        <div class="footer">
+            Вопросы? <a href="https://t.me/fhcsupport">@fhcsupport</a>
+        </div>
     </div>
-    <div class="stat-item">
-      <span class="label">Статус:</span>
-      <span class="online-status">● Активна</span>
-    </div>
-    <div class="stat-item">
-      <span class="label">Серверов:</span>
-      <span class="value">${nodes.length}</span>
-    </div>
-    <div class="stat-item">
-      <span class="label">Поддержка:</span>
-      <a href="https://t.me/fhcsupport" style="color:#58a6ff; text-decoration:none;">@fhcsupport</a>
-    </div>
-  </div>
-
-  <div class="servers-grid">
-    ${cardsHtml}
-  </div>
-
-  <div class="footer">
-    Обновлено: ${new Date().toLocaleString('ru-RU')} · Данные защищены
-  </div>
-</div>
 </body>
-</html>
-    `;
+</html>`;
 
     return new Response(html, {
       headers: { "Content-Type": "text/html; charset=utf-8" }
