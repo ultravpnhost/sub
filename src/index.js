@@ -1,10 +1,9 @@
 export default {
   async fetch(request, env, ctx) {
     const userAgent = request.headers.get("user-agent") || "";
-    // Определяем, запрос от VPN-клиента или браузера
     const isClient = userAgent.includes("V2Ray") || userAgent.includes("Happ") || userAgent.includes("sing-box");
 
-    // ---- ТОЛЬКО 5 СЕРВЕРОВ (LTE №2 и №3 УДАЛЕНЫ) ----
+    // ---- Только 5 серверов (LTE №2 и №3 удалены) ----
     const nodes = [
       {
         tag: "de-1",
@@ -63,7 +62,7 @@ export default {
       }
     ];
 
-    // ---- Функция генерации полного конфига (как в вашем примере) ----
+    // ---- Функция генерации полного конфига (для клиентов) ----
     function makeConfig({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, remarks }) {
       return {
         dns: {
@@ -172,7 +171,7 @@ export default {
       };
     }
 
-    // ---- ЕСЛИ ЗАПРОС ОТ VPN-КЛИЕНТА ----
+    // ---- Если запрос от VPN-клиента ----
     if (isClient) {
       const configs = nodes.map(n => makeConfig(n));
       return new Response(JSON.stringify(configs, null, 2), {
@@ -184,55 +183,21 @@ export default {
       });
     }
 
-    // ---- ВЕБ-ИНТЕРФЕЙС для браузеров ----
-    // Функция для генерации VLESS-ссылки (для кнопок)
-    function buildVlessLink(n) {
-      return `vless://${n.id}@${n.address}:${n.port}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=${n.serverName}&fp=${n.fingerprint}&pbk=${n.publicKey}&sid=${n.shortId}#${encodeURIComponent(n.remarks)}`;
-    }
-
-    // Генерируем карточки для 5 серверов
-    const cardsHtml = nodes.map((n, index) => {
-      const link = buildVlessLink(n);
-      const config = {
-        protocol: "vless",
-        remarks: n.remarks,
-        address: n.address,
-        port: n.port,
-        id: n.id,
-        encryption: "none",
-        flow: "xtls-rprx-vision",
-        streamSettings: {
-          network: "tcp",
-          security: "reality",
-          realitySettings: {
-            fingerprint: n.fingerprint,
-            publicKey: n.publicKey,
-            serverName: n.serverName,
-            shortId: n.shortId
-          }
-        }
-      };
-      const jsonConfig = JSON.stringify(config, null, 2);
-      const escapedLink = link.replace(/\\/g, '\\\\').replace(/"/g, '&quot;');
-      const escapedJson = jsonConfig.replace(/\\/g, '\\\\').replace(/"/g, '&quot;');
+    // ---- МИНИМАЛИСТИЧНЫЙ ВЕБ-ИНТЕРФЕЙС (без кнопок копирования/скачивания) ----
+    // Собираем карточки серверов (только общая информация)
+    const cardsHtml = nodes.map((n) => {
       return `
-        <div class="card" data-index="${index}">
-          <div class="card-header">
+        <div class="server-card">
+          <div class="server-header">
             <span class="flag">${n.remarks.split(' ')[0]}</span>
             <span class="name">${n.remarks}</span>
-            <span class="badge">vless</span>
+            <span class="status online"></span>
           </div>
-          <div class="card-body">
-            <div class="field"><span class="label">Адрес:</span> ${n.address}</div>
-            <div class="field"><span class="label">Порт:</span> ${n.port}</div>
-            <div class="field"><span class="label">ID:</span> <code>${n.id}</code></div>
-            <div class="field"><span class="label">SNI:</span> ${n.serverName}</div>
-            <div class="field"><span class="label">Public Key:</span> <code>${n.publicKey}</code></div>
-            <div class="field"><span class="label">Short ID:</span> ${n.shortId}</div>
-          </div>
-          <div class="card-actions">
-            <button class="btn copy-json" data-json='${escapedJson}'>📋 Копировать JSON</button>
-            <button class="btn copy-link" data-link='${escapedLink}'>🔗 Копировать ссылку</button>
+          <div class="server-info">
+            <div class="info-item"><span class="label">Протокол:</span> vless</div>
+            <div class="info-item"><span class="label">Адрес:</span> ${n.address}</div>
+            <div class="info-item"><span class="label">Порт:</span> ${n.port}</div>
+            <div class="info-item"><span class="label">SNI:</span> ${n.serverName}</div>
           </div>
         </div>
       `;
@@ -244,363 +209,182 @@ export default {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ultra VPN Plus — Подписка</title>
+  <title>VPN подписка</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background: #09090b;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0b0e14;
       color: #e4e9f0;
-      padding: 20px;
-      min-height: 100vh;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
+      min-height: 100vh;
+      padding: 20px;
     }
     .container {
-      max-width: 1200px;
+      max-width: 900px;
       width: 100%;
     }
-    header {
+    .header {
       text-align: center;
-      padding: 30px 0 20px;
+      padding: 20px 0 30px;
     }
-    header h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 600;
       background: linear-gradient(135deg, #58a6ff, #a78bfa);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      letter-spacing: -0.5px;
     }
-    header p {
+    .header p {
       color: #8b95a9;
-      margin-top: 6px;
-      font-size: 1rem;
+      font-size: 0.95rem;
+      margin-top: 4px;
     }
     .stats {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 16px;
-      padding: 16px 24px;
-      margin: 20px 0 30px;
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-between;
-      align-items: center;
+      background: #141a24;
+      padding: 16px 24px;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      gap: 10px;
     }
-    .stats .stat-item {
+    .stat-item {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
-    .stats .stat-item span:first-child {
+    .stat-item .label {
       color: #8b949e;
     }
-    .stats .stat-item span:last-child {
-      font-weight: 600;
+    .stat-item .value {
+      font-weight: 500;
       color: #58a6ff;
     }
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      justify-content: center;
-      margin-bottom: 30px;
+    .stat-item .online-status {
+      color: #22c55e;
+      font-weight: 500;
     }
-    .toolbar .btn {
-      background: #1e293b;
-      border: none;
-      color: #cbd5e1;
-      padding: 10px 20px;
-      border-radius: 30px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    .toolbar .btn:hover { background: #2d3b52; color: #fff; }
-    .toolbar .btn:active { transform: scale(0.96); }
-    .toolbar .btn-primary {
-      background: #3b82f6;
-      color: #fff;
-    }
-    .toolbar .btn-primary:hover { background: #2563eb; }
-    .cards {
+    .servers-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 24px;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 20px;
     }
-    .card {
-      background: #161b22;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-      transition: transform 0.15s, box-shadow 0.2s;
+    .server-card {
+      background: #141a24;
       border: 1px solid #1e293b;
-      display: flex;
-      flex-direction: column;
+      border-radius: 14px;
+      padding: 18px 20px 20px;
+      transition: border-color 0.2s, transform 0.15s;
     }
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0,0,0,0.7);
+    .server-card:hover {
       border-color: #334155;
+      transform: translateY(-2px);
     }
-    .card-header {
+    .server-header {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
+      margin-bottom: 12px;
     }
-    .flag { font-size: 1.8rem; line-height: 1; }
-    .name { font-weight: 600; font-size: 1.2rem; flex: 1; }
-    .badge {
-      background: #2d3b52;
-      padding: 2px 12px;
-      border-radius: 20px;
-      font-size: 0.7rem;
+    .flag {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+    .name {
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #94a3b8;
-    }
-    .card-body {
+      font-size: 1.1rem;
       flex: 1;
-      font-size: 0.9rem;
-      line-height: 1.6;
     }
-    .field {
+    .status {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .status.online {
+      background: #22c55e;
+      box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+    }
+    .server-info {
+      font-size: 0.85rem;
+      line-height: 1.7;
+    }
+    .info-item {
       display: flex;
-      flex-wrap: wrap;
-      gap: 4px 8px;
-      padding: 3px 0;
-      border-bottom: 1px solid #1e293b;
+      justify-content: space-between;
+      padding: 2px 0;
+      border-bottom: 1px solid #1a2230;
     }
-    .field:last-child { border-bottom: none; }
-    .label { color: #8b95a9; min-width: 80px; }
-    code {
-      background: #0b0e14;
-      padding: 1px 6px;
-      border-radius: 4px;
-      font-size: 0.8rem;
+    .info-item:last-child {
+      border-bottom: none;
+    }
+    .info-item .label {
+      color: #8b95a9;
+    }
+    .info-item .value {
       color: #d1d5db;
       word-break: break-all;
+      text-align: right;
     }
-    .card-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 16px;
-      flex-wrap: wrap;
-    }
-    .card-actions .btn {
-      flex: 1;
-      min-width: 100px;
-      background: #1e293b;
-      border: none;
-      color: #cbd5e1;
-      padding: 8px 12px;
-      border-radius: 30px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: background 0.2s;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .card-actions .btn:hover { background: #2d3b52; color: #fff; }
-    .card-actions .btn-success {
-      background: #22c55e;
-      color: #fff;
-    }
-    .card-actions .btn-success:hover { background: #16a34a; }
-    .toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1e293b;
-      color: #e4e9f0;
-      padding: 12px 28px;
-      border-radius: 40px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-      font-size: 0.95rem;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-      pointer-events: none;
-      border: 1px solid #334155;
-      z-index: 999;
-    }
-    .toast.show { opacity: 1; }
-    footer {
+    .footer {
       margin-top: 40px;
+      text-align: center;
       color: #4b5563;
       font-size: 0.8rem;
-      text-align: center;
     }
-    footer a { color: #58a6ff; text-decoration: none; }
+    .footer a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
     @media (max-width: 600px) {
-      header h1 { font-size: 1.8rem; }
-      .cards { grid-template-columns: 1fr; }
-      .toolbar .btn { font-size: 0.8rem; padding: 8px 14px; }
-      .stats { flex-direction: column; gap: 8px; align-items: flex-start; }
+      .header h1 { font-size: 1.6rem; }
+      .stats { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .servers-grid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
 <div class="container">
-  <header>
-    <h1>🚀 Ultra VPN Plus</h1>
-    <p>Выберите сервер и скопируйте конфигурацию</p>
-  </header>
+  <div class="header">
+    <h1>🔒 VPN Подписка</h1>
+    <p>Ваши активные серверы</p>
+  </div>
 
   <div class="stats">
-    <div class="stat-item"><span>Использовано:</span><span>357 GB / ∞</span></div>
-    <div class="stat-item"><span>Статус:</span><span style="color:#22c55e;">● Активна</span></div>
-    <div class="stat-item"><span>Поддержка:</span><a href="https://t.me/fhcsupport" style="color:#58a6ff; text-decoration:none;">@fhcsupport</a></div>
+    <div class="stat-item">
+      <span class="label">Использовано:</span>
+      <span class="value">357 GB / ∞</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">Статус:</span>
+      <span class="online-status">● Активна</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">Серверов:</span>
+      <span class="value">${nodes.length}</span>
+    </div>
+    <div class="stat-item">
+      <span class="label">Поддержка:</span>
+      <a href="https://t.me/fhcsupport" style="color:#58a6ff; text-decoration:none;">@fhcsupport</a>
+    </div>
   </div>
 
-  <div class="toolbar">
-    <button class="btn btn-primary" id="downloadAllJson">📥 Скачать все JSON</button>
-    <button class="btn btn-primary" id="downloadAllLinks">📥 Скачать все ссылки</button>
-    <button class="btn" id="copyAllLinks">📋 Копировать все ссылки</button>
-    <button class="btn" id="copyAllJson">📋 Копировать все JSON</button>
-  </div>
-
-  <div class="cards" id="cardsContainer">
+  <div class="servers-grid">
     ${cardsHtml}
   </div>
 
-  <footer>
-    Обновлено: ${new Date().toLocaleString('ru-RU')} · Данные получены с Cloudflare Worker
-  </footer>
+  <div class="footer">
+    Обновлено: ${new Date().toLocaleString('ru-RU')} · Данные защищены
+  </div>
 </div>
-
-<div id="toast" class="toast"></div>
-
-<script>
-  (function() {
-    // Данные серверов (дублируем из Worker для JS)
-    const nodes = ${JSON.stringify(nodes)};
-
-    // Функция генерации JSON-конфига для одного сервера (плоский для v2ray)
-    function buildConfig(n) {
-      return {
-        protocol: "vless",
-        remarks: n.remarks,
-        address: n.address,
-        port: n.port,
-        id: n.id,
-        encryption: "none",
-        flow: "xtls-rprx-vision",
-        streamSettings: {
-          network: "tcp",
-          security: "reality",
-          realitySettings: {
-            fingerprint: n.fingerprint,
-            publicKey: n.publicKey,
-            serverName: n.serverName,
-            shortId: n.shortId
-          }
-        }
-      };
-    }
-
-    // Генерация vless-ссылки
-    function buildLink(n) {
-      return \`vless://\${n.id}@\${n.address}:\${n.port}?encryption=none&flow=xtls-rprx-vision&security=reality&sni=\${n.serverName}&fp=\${n.fingerprint}&pbk=\${n.publicKey}&sid=\${n.shortId}#\${encodeURIComponent(n.remarks)}\`;
-    }
-
-    // Уведомления
-    function showToast(message, duration = 2000) {
-      const toast = document.getElementById('toast');
-      toast.textContent = message;
-      toast.classList.add('show');
-      clearTimeout(toast._timer);
-      toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
-    }
-
-    // Копирование
-    function copyText(text, successMsg = 'Скопировано!') {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => showToast(successMsg))
-          .catch(() => fallbackCopy(text, successMsg));
-      } else {
-        fallbackCopy(text, successMsg);
-      }
-    }
-    function fallbackCopy(text, successMsg) {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      document.body.appendChild(textarea);
-      textarea.select();
-      try { document.execCommand('copy'); showToast(successMsg); } catch (e) { showToast('Не удалось скопировать'); }
-      document.body.removeChild(textarea);
-    }
-
-    // Скачивание файла
-    function downloadFile(content, filename, mimeType = 'application/json') {
-      const blob = new Blob([content], { type: mimeType });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(link.href);
-    }
-
-    // ---------- Обработчики для карточек ----------
-    document.querySelectorAll('.copy-json').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        const json = this.dataset.json;
-        copyText(json, 'JSON скопирован!');
-      });
-    });
-
-    document.querySelectorAll('.copy-link').forEach(btn => {
-      btn.addEventListener('click', function(e) {
-        const link = this.dataset.link;
-        copyText(link, 'Ссылка скопирована!');
-      });
-    });
-
-    // ---------- Глобальные кнопки ----------
-    document.getElementById('downloadAllJson').addEventListener('click', function() {
-      const allConfigs = nodes.map(n => buildConfig(n));
-      const json = JSON.stringify(allConfigs, null, 2);
-      downloadFile(json, 'vless_configs.json', 'application/json');
-      showToast('JSON-файл скачан');
-    });
-
-    document.getElementById('downloadAllLinks').addEventListener('click', function() {
-      const links = nodes.map(n => buildLink(n)).join('\\n');
-      downloadFile(links, 'vless_links.txt', 'text/plain');
-      showToast('Ссылки скачаны в файл');
-    });
-
-    document.getElementById('copyAllLinks').addEventListener('click', function() {
-      const links = nodes.map(n => buildLink(n)).join('\\n');
-      copyText(links, 'Все ссылки скопированы!');
-    });
-
-    document.getElementById('copyAllJson').addEventListener('click', function() {
-      const allConfigs = nodes.map(n => buildConfig(n));
-      const json = JSON.stringify(allConfigs, null, 2);
-      copyText(json, 'Все JSON скопированы!');
-    });
-
-    // Приветствие
-    window.addEventListener('load', function() {
-      showToast('Добро пожаловать! Выберите сервер', 1800);
-    });
-  })();
-</script>
 </body>
 </html>
     `;
