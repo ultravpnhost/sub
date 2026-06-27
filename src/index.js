@@ -65,7 +65,7 @@ export default {
     headers.set("Content-Type", "application/json; charset=utf-8");
     
     // Анонс теперь в заголовках
-    headers.set("profile-notice", "Ultra VPN Plus — стабильное и быстрое подключение.");
+    headers.set("announce", "Ultra VPN Plus — стабильное и быстрое подключение.");
     
     // Трафик и лимиты
     headers.set("subscription-userinfo", "upload=0; download=383331401728; total=5497558138880; expire=1899589200");
