@@ -165,28 +165,6 @@ export default {
         shortId: "abbcd128",
         fingerprint: "qq",
         remarks: "🇩🇪 LTE №1 ⚡"
-      },
-      {
-        tag: "lte-2",
-        address: "178.250.242.194",
-        port: 6443,
-        id: "b92337e0-6819-4f17-a3cc-f860b138b27a",
-        serverName: "a.wb.ru",
-        publicKey: "noOR7PAxYWRRrbQywDahrBlTkbNuNFkMLCPcX-wfa5TY",
-        shortId: "086007",
-        fingerprint: "firefox",
-        remarks: "🇵🇱 LTE №2"
-      },
-      {
-        tag: "lte-3",
-        address: "178.250.242.194",
-        port: 443,
-        id: "7573908b-d981-4153-92aa-33ee2d22144c",
-        serverName: "api.ok.ru",
-        publicKey: "grRXV9R0CYdwQX8R4S1qfMde1b8g6Ejr1UZCxM5-PkM",
-        shortId: "3efa66e0",
-        fingerprint: "firefox",
-        remarks: "🇳🇱 LTE №3"
       }
     ];
 
