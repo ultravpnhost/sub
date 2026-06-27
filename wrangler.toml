@@ -1,3 +1,10 @@
 name = "sub"
-main = "src/index.js"
 compatibility_date = "2026-06-27"
+
+[build]
+command = ""
+
+[build.upload]
+format = "service-worker"
+# Если файл лежит в корне, оставь "index.js". Если внутри папки src — напиши "src/index.js"
+main = "index.js"
