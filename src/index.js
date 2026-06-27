@@ -5,16 +5,15 @@ export default {
     const accept = request.headers.get("Accept") || "";
     const userAgent = request.headers.get("user-agent") || "";
 
-    // ---- Константы для расчёта трафика ----
+    // ---- Константы для трафика ----
     const START_DATE = new Date('2026-06-20T00:00:00Z');
     const BASE_TRAFFIC_GB = 806;
 
-    // Детерминированное "случайное" число от 10 до 30 на основе даты
     function getDailyIncrement(date) {
       const seed = date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
       const x = Math.sin(seed) * 10000;
       const r = x - Math.floor(x);
-      return Math.floor(r * 21) + 10; // 10-30
+      return Math.floor(r * 21) + 10;
     }
 
     function getCurrentTrafficGB() {
@@ -31,9 +30,10 @@ export default {
     }
 
     const usedTraffic = getCurrentTrafficGB();
-    const expireTimestamp = 1899589200; // 13.03.2030
+    const expireTimestamp = 1899589200;
+    const announcementText = "🔥 Новые серверы в Германии и LTE! Подписка активна до 2030 года. Вопросы в @fhcsupport";
 
-    // ---- Серверы (с флагами для клиентов) ----
+    // ---- Серверы ----
     const nodes = [
       {
         tag: "de-1",
@@ -103,7 +103,7 @@ export default {
       }
     ];
 
-    // ---- Функции генерации конфигов (для JSON-ответа) ----
+    // ---- Функции генерации конфигов ----
     function makeOutbound({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, network, flow, grpcServiceName }) {
       const outbound = {
         tag: tag,
@@ -226,7 +226,7 @@ export default {
       };
     }
 
-    // ---- Условия для JSON (подписка для клиентов) ----
+    // ---- Условия для JSON ----
     const wantsJson = (path === '/json') 
                    || accept.includes('application/json')
                    || userAgent.includes('V2Ray') 
@@ -237,24 +237,46 @@ export default {
     if (wantsJson) {
       const configs = nodes.map(n => makeFullConfig(n));
       const usedTrafficBytes = usedTraffic * 1024 * 1024 * 1024;
-      return new Response(JSON.stringify(configs, null, 2), {
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "Access-Control-Allow-Origin": "*",
-          "Profile-Title": "Ultra VPN Plus",
-          "Subscription-Status": "active",
-          "Subscription-Traffic": usedTraffic + " GB / ∞",
-          "Subscription-Expire": String(expireTimestamp),
-          "subscription-userinfo": `upload=0; download=${usedTrafficBytes}; total=0; expire=${expireTimestamp}`
-        }
-      });
+
+      const commonHeaders = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Profile-Title": "Ultra VPN Plus",
+        "Subscription-Status": "active",
+        "Subscription-Traffic": usedTraffic + " GB / ∞",
+        "Subscription-Expire": String(expireTimestamp),
+        "Subscription-Announcement": announcementText,
+        "subscription-userinfo": `upload=0; download=${usedTrafficBytes}; total=0; expire=${expireTimestamp}`
+      };
+
+      // ---- Для INCy возвращаем объект с полем announcement ----
+      if (userAgent.includes('INCy')) {
+        const responseBody = {
+          servers: configs,
+          subscription: {
+            title: "Ultra VPN Plus",
+            traffic: usedTraffic + " GB / ∞",
+            expire: expireTimestamp,
+            status: "active",
+            announcement: announcementText
+          }
+        };
+        return new Response(JSON.stringify(responseBody, null, 2), {
+          headers: commonHeaders
+        });
+      } else {
+        // Для остальных – массив (заголовки уже содержат announcement)
+        return new Response(JSON.stringify(configs, null, 2), {
+          headers: commonHeaders
+        });
+      }
     }
 
-    // ---- Подготовка данных для веб-интерфейса (без флагов) ----
+    // ---- Подготовка данных для веб-интерфейса ----
     const displayNames = nodes.map(n => n.remarks.replace(/^[^\s]+\s/, ''));
     const serverDataJson = JSON.stringify(displayNames);
 
-    // ---- ВЕБ-ИНТЕРФЕЙС (с динамическим трафиком) ----
+    // ---- ВЕБ-ИНТЕРФЕЙС (с объявлением) ----
     const html = String.raw`
 <!DOCTYPE html>
 <html lang="ru">
@@ -329,6 +351,22 @@ export default {
         .stat-label { font-size: 14px; color: #8b95a9; display: flex; align-items: center; gap: 8px; }
         .stat-value { font-size: 16px; font-weight: 600; }
         .stat-value .date { color: #fca5a5; }
+
+        .announcement {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #e4e9f0;
+        }
+        .announcement-icon { font-size: 20px; }
+        .announcement-text { flex: 1; }
+
         .btn-status {
             display: block;
             width: 100%;
@@ -455,6 +493,7 @@ export default {
             .card { padding: 20px 14px; }
             .title { font-size: 22px; }
             .server-item { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .announcement { font-size: 13px; }
         }
     </style>
 </head>
@@ -477,6 +516,11 @@ export default {
                     <span class="stat-label">📅 Истекает</span>
                     <span class="stat-value date">13.03.2030</span>
                 </div>
+            </div>
+            <!-- Блок объявления -->
+            <div class="announcement">
+                <span class="announcement-icon">📢</span>
+                <span class="announcement-text">${announcementText}</span>
             </div>
             <button class="btn-status" id="statusBtn">📊 Статус серверов</button>
             <div class="footer">
