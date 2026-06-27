@@ -1,21 +1,7 @@
 export default {
   async fetch(request, env, ctx) {
-    // --- ДАННЫЕ ПОДПИСКИ ---
-    // 1. Название подписки (Base64)
-    const profileTitleBase64 = "VWx0cmEgVlBOIFBsdXM="; 
-    
-    // 2. Анонс (вставляем прямо в заголовок, как принято в современных подписках)
-    const announceStr = "Ultra VPN Plus — стабильное и быстрое подключение без ограничений.";
-
-    // 3. Конфигурации
     const configsObj = [
       {
-        "dns": { "queryStrategy": "UseIP", "servers": [ { "address": "8.8.8.8", "skipFallback": false } ], "tag": "dns_out" },
-        "inbounds": [
-          { "port": 10808, "protocol": "mixed", "settings": { "auth": "noauth", "udp": true, "userLevel": 8 }, "sniffing": { "destOverride": ["http", "tls", "quic", "fakedns"], "enabled": true }, "tag": "mixed" },
-          { "port": 10809, "protocol": "http", "settings": { "userLevel": 8 }, "tag": "http" }
-        ],
-        "log": { "loglevel": "warning" },
         "outbounds": [
           {
             "protocol": "vless",
@@ -23,25 +9,14 @@ export default {
             "streamSettings": {
               "network": "tcp",
               "security": "reality",
-              "realitySettings": { "fingerprint": "qq", "mldsa65Verify": "", "publicKey": "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", "serverName": "ads.x5.ru", "shortId": "abbcd128", "show": false }
+              "realitySettings": { "publicKey": "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", "serverName": "ads.x5.ru", "shortId": "abbcd128" }
             },
-            "settings": { "address": "de-new.datanode-internal.net", "encryption": "none", "flow": "xtls-rprx-vision", "id": "9d5e7e04-53e4-4d98-bb26-236c907078a5", "level": 8, "port": 443 }
-          },
-          { "protocol": "freedom", "settings": { "domainStrategy": "AsIs", "noises": [], "redirect": "" }, "tag": "direct" },
-          { "protocol": "blackhole", "settings": { "response": { "type": "http" } }, "tag": "block" }
+            "settings": { "address": "de-new.datanode-internal.net", "port": 443, "id": "9d5e7e04-53e4-4d98-bb26-236c907078a5", "flow": "xtls-rprx-vision" }
+          }
         ],
-        "policy": { "levels": { "8": { "connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1 } }, "system": { "statsOutboundDownlink": true, "statsOutboundUplink": true } },
-        "remarks": "🇩🇪 Германия⚡",
-        "routing": { "domainStrategy": "AsIs", "rules": [ { "network": "tcp,udp", "outboundTag": "proxy", "type": "field" } ] },
-        "stats": {}
+        "remarks": "🇩🇪 Германия"
       },
       {
-        "dns": { "queryStrategy": "UseIP", "servers": [ { "address": "8.8.8.8", "skipFallback": false } ], "tag": "dns_out" },
-        "inbounds": [
-          { "port": 10808, "protocol": "mixed", "settings": { "auth": "noauth", "udp": true, "userLevel": 8 }, "sniffing": { "destOverride": ["http", "tls", "quic", "fakedns"], "enabled": true }, "tag": "mixed" },
-          { "port": 10809, "protocol": "http", "settings": { "userLevel": 8 }, "tag": "http" }
-        ],
-        "log": { "loglevel": "warning" },
         "outbounds": [
           {
             "protocol": "vless",
@@ -49,116 +24,21 @@ export default {
             "streamSettings": {
               "network": "tcp",
               "security": "reality",
-              "realitySettings": { "fingerprint": "qq", "mldsa65Verify": "", "publicKey": "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", "serverName": "ads.x5.ru", "shortId": "abbcd128", "show": false }
+              "realitySettings": { "publicKey": "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", "serverName": "ads.x5.ru", "shortId": "abbcd128" }
             },
-            "settings": { "address": "se-new.datanode-internal.net", "encryption": "none", "flow": "xtls-rprx-vision", "id": "9d5e7e04-53e4-4d98-bb26-236c907078a5", "level": 8, "port": 443 }
-          },
-          { "protocol": "freedom", "settings": { "domainStrategy": "AsIs", "noises": [], "redirect": "" }, "tag": "direct" },
-          { "protocol": "blackhole", "settings": { "response": { "type": "http" } }, "tag": "block" }
+            "settings": { "address": "se-new.datanode-internal.net", "port": 443, "id": "9d5e7e04-53e4-4d98-bb26-236c907078a5", "flow": "xtls-rprx-vision" }
+          }
         ],
-        "policy": { "levels": { "8": { "connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1 } }, "system": { "statsOutboundDownlink": true, "statsOutboundUplink": true } },
-        "remarks": "🇸🇪 Швеция⚡",
-        "routing": { "domainStrategy": "AsIs", "rules": [ { "network": "tcp,udp", "outboundTag": "proxy", "type": "field" } ] },
-        "stats": {}
-      },
-      {
-        "dns": { "queryStrategy": "UseIP", "servers": [ { "address": "8.8.8.8", "skipFallback": false } ], "tag": "dns_out" },
-        "inbounds": [
-          { "port": 10808, "protocol": "mixed", "settings": { "auth": "noauth", "udp": true, "userLevel": 8 }, "sniffing": { "destOverride": ["http", "tls", "quic", "fakedns"], "enabled": true }, "tag": "mixed" },
-          { "port": 10809, "protocol": "http", "settings": { "userLevel": 8 }, "tag": "http" }
-        ],
-        "log": { "loglevel": "warning" },
-        "outbounds": [
-          {
-            "protocol": "vless",
-            "tag": "proxy",
-            "streamSettings": {
-              "network": "tcp",
-              "security": "reality",
-              "realitySettings": { "fingerprint": "qq", "mldsa65Verify": "", "publicKey": "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", "serverName": "sun9-35.userapi.com", "shortId": "abbcd128", "show": false }
-            },
-            "settings": { "address": "pl.datanode-internal.net", "encryption": "none", "flow": "xtls-rprx-vision", "id": "9d5e7e04-53e4-4d98-bb26-236c907078a5", "level": 8, "port": 443 }
-          },
-          { "protocol": "freedom", "settings": { "domainStrategy": "AsIs", "noises": [], "redirect": "" }, "tag": "direct" },
-          { "protocol": "blackhole", "settings": { "response": { "type": "http" } }, "tag": "block" }
-        ],
-        "policy": { "levels": { "8": { "connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1 } }, "system": { "statsOutboundDownlink": true, "statsOutboundUplink": true } },
-        "remarks": "🇵🇱 Польша",
-        "routing": { "domainStrategy": "AsIs", "rules": [ { "network": "tcp,udp", "outboundTag": "proxy", "type": "field" } ] },
-        "stats": {}
-      },
-      {
-        "dns": { "queryStrategy": "UseIP", "servers": [ { "address": "8.8.8.8", "skipFallback": false } ], "tag": "dns_out" },
-        "inbounds": [
-          { "port": 10808, "protocol": "mixed", "settings": { "auth": "noauth", "udp": true, "userLevel": 8 }, "sniffing": { "destOverride": ["http", "tls", "quic", "fakedns"], "enabled": true }, "tag": "mixed" },
-          { "port": 10809, "protocol": "http", "settings": { "userLevel": 8 }, "tag": "http" }
-        ],
-        "log": { "loglevel": "warning" },
-        "outbounds": [
-          {
-            "protocol": "vless",
-            "tag": "proxy",
-            "streamSettings": {
-              "network": "tcp",
-              "security": "reality",
-              "realitySettings": { "fingerprint": "qq", "mldsa65Verify": "", "publicKey": "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", "serverName": "sun9-38.userapi.com", "shortId": "abbcd128", "show": false }
-            },
-            "settings": { "address": "ru.datanode-internal.net", "encryption": "none", "flow": "xtls-rprx-vision", "id": "9d5e7e04-53e4-4d98-bb26-236c907078a5", "level": 8, "port": 443 }
-          },
-          { "protocol": "freedom", "settings": { "domainStrategy": "AsIs", "noises": [], "redirect": "" }, "tag": "direct" },
-          { "protocol": "blackhole", "settings": { "response": { "type": "http" } }, "tag": "block" }
-        ],
-        "policy": { "levels": { "8": { "connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1 } }, "system": { "statsOutboundDownlink": true, "statsOutboundUplink": true } },
-        "remarks": "🇷🇺 Россия",
-        "routing": { "domainStrategy": "AsIs", "rules": [ { "network": "tcp,udp", "outboundTag": "proxy", "type": "field" } ] },
-        "stats": {}
-      },
-      {
-        "dns": { "queryStrategy": "UseIP", "servers": [ { "address": "8.8.8.8", "skipFallback": false } ], "tag": "dns_out" },
-        "inbounds": [
-          { "port": 10808, "protocol": "mixed", "settings": { "auth": "noauth", "udp": true, "userLevel": 8 }, "sniffing": { "destOverride": ["http", "tls", "quic", "fakedns"], "enabled": true }, "tag": "mixed" },
-          { "port": 10809, "protocol": "http", "settings": { "userLevel": 8 }, "tag": "http" }
-        ],
-        "log": { "loglevel": "warning" },
-        "outbounds": [
-          {
-            "protocol": "vless",
-            "tag": "proxy",
-            "streamSettings": {
-              "network": "tcp",
-              "security": "reality",
-              "realitySettings": { "fingerprint": "qq", "mldsa65Verify": "", "publicKey": "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", "serverName": "ads.x5.ru", "shortId": "abbcd128", "show": false }
-            },
-            "settings": { "address": "hole3.datanode-internal.net", "encryption": "none", "flow": "xtls-rprx-vision", "id": "9d5e7e04-53e4-4d98-bb26-236c907078a5", "level": 8, "port": 9443 }
-          },
-          { "protocol": "freedom", "settings": { "domainStrategy": "AsIs", "noises": [], "redirect": "" }, "tag": "direct" },
-          { "protocol": "blackhole", "settings": { "response": { "type": "http" } }, "tag": "block" }
-        ],
-        "policy": { "levels": { "8": { "connIdle": 300, "downlinkOnly": 1, "handshake": 4, "uplinkOnly": 1 } }, "system": { "statsOutboundDownlink": true, "statsOutboundUplink": true } },
-        "remarks": "🇩🇪 LTE #1",
-        "routing": { "domainStrategy": "AsIs", "rules": [ { "network": "tcp,udp", "outboundTag": "proxy", "type": "field" } ] },
-        "stats": {}
+        "remarks": "🇸🇪 Швеция"
       }
     ];
 
-    const cleanJson = JSON.stringify(configsObj);
+    const headers = new Headers();
+    headers.set("Content-Type", "application/json");
+    // Данные подписки в заголовках:
+    headers.set("profile-notice", "Ultra VPN Plus — всё работает.");
+    headers.set("subscription-userinfo", "upload=0; download=383331401728; total=5497558138880; expire=1899589200");
 
-    const newHeaders = new Headers();
-    newHeaders.set("Content-Type", "application/json; charset=utf-8");
-    
-    // ВСТРАИВАЕМ ВСЁ В ЗАГОЛОВКИ
-    newHeaders.set("profile-title", `base64:${profileTitleBase64}`);
-    newHeaders.set("profile-update-interval", "1");
-    // Используем announce-заголовок, который понимают почти все клиенты
-    newHeaders.set("profile-notice", announceStr);
-    
-    // Трафик: 357 ГБ из 5 ТБ
-    // download (использовано) = 383331401728 байт
-    // total (всего) = 5497558138880 байт
-    newHeaders.set("subscription-userinfo", "upload=0; download=383331401728; total=5497558138880; expire=1899589200");
-    
-    newHeaders.set("Access-Control-Allow-Origin", "*");
-
-    return new Response(cleanJson, { status: 200, headers: newHeaders });
+    return new Response(JSON.stringify(configsObj), { status: 200, headers });
   }
 };
