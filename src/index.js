@@ -60,14 +60,6 @@ export default {
       }
     ];
 
-    // ГЕНЕРАЦИЯ СТАНДАРТНЫХ ССЫЛОК (VLESS://)
-    const vlessLinks = configsObj.map(c => {
-      const label = encodeURIComponent(c.remarks);
-      return `vless://${c.id}@${c.address}:${c.port}?encryption=none&flow=${c.flow}&security=reality&sni=${c.serverName}&fp=qq&pbk=${c.publicKey}&sid=${c.shortId}#${label}`;
-    });
-
-    const plainTextLinks = vlessLinks.join("\n");
-
     // Формируем HTML-страницу для отображения в браузере
     const html = `
     <!DOCTYPE html>
