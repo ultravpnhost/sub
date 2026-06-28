@@ -31,7 +31,7 @@ export default {
 
     const usedTraffic = getCurrentTrafficGB();
     const expireTimestamp = 1899589200; // 13.03.2030
-    const subscriptionTitle = "Ultra VPN Plus"; // Везде теперь так
+    const subscriptionTitle = "Ultra VPN Plus";
 
     // ---- Серверы (с флагами для клиентов) ----
     const nodes = [
@@ -226,48 +226,7 @@ export default {
       };
     }
 
-    // ---- Функция для генерации VLESS-ссылки ----
-    function buildVlessLink(node) {
-      let link = `vless://${node.id}@${node.address}:${node.port}`;
-      link += `?encryption=none`;
-      if (node.flow) {
-        link += `&flow=${node.flow}`;
-      }
-      link += `&security=reality&sni=${node.serverName}&fp=${node.fingerprint}&pbk=${node.publicKey}&sid=${node.shortId}`;
-      link += `#${encodeURIComponent(node.remarks)}`;
-      return link;
-    }
-
-    // ============================================================
-    // 1. /wlbypass — отдаёт plain text с заголовками в теле
-    // ============================================================
-    if (path === '/wlbypass') {
-      // Заголовки в теле (комментарии)
-      const headerLines = [
-        `#profile-title: ${subscriptionTitle}`,
-        `#profile-update-interval: 1`,
-        `#subscription-userinfo: expire=${expireTimestamp}`
-      ];
-      const linkLines = nodes.map(node => buildVlessLink(node));
-      const body = headerLines.concat('', linkLines).join('\n');
-
-      return new Response(body, {
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
-          'Profile-Title': subscriptionTitle,
-          'profile-title': subscriptionTitle,
-          'Subscription-Status': 'active',
-          'Subscription-Traffic': `${usedTraffic} GB / ∞`,
-          'Subscription-Expire': String(expireTimestamp),
-          'subscription-userinfo': `upload=0; download=${usedTraffic * 1024 * 1024 * 1024}; total=0; expire=${expireTimestamp}`
-        }
-      });
-    }
-
-    // ============================================================
-    // 2. /json — отдаёт JSON для клиентов
-    // ============================================================
+    // ---- Условия для JSON ----
     const wantsJson = (path === '/json') 
                    || accept.includes('application/json')
                    || userAgent.includes('V2Ray') 
@@ -310,12 +269,11 @@ export default {
       }
     }
 
-    // ============================================================
-    // 3. ВЕБ-ИНТЕРФЕЙС (для браузеров) — без изменений
-    // ============================================================
+    // ---- Подготовка данных для веб-интерфейса ----
     const displayNames = nodes.map(n => n.remarks.replace(/^[^\s]+\s/, ''));
     const serverDataJson = JSON.stringify(displayNames);
 
+    // ---- ВЕБ-ИНТЕРФЕЙС (без изменений) ----
     const html = String.raw`
 <!DOCTYPE html>
 <html lang="ru">
