@@ -15,6 +15,7 @@ export default {
         if (!data) {
           const defaultData = {
             'default': {
+              name: 'Основная',
               active: true,
               expire: null,
               createdAt: Date.now()
@@ -25,10 +26,10 @@ export default {
         }
         return data;
       } catch (e) {
-        // Если KV недоступен, используем память
         console.error('KV error:', e);
         return {
           'default': {
+            name: 'Основная',
             active: true,
             expire: null,
             createdAt: Date.now()
@@ -41,9 +42,7 @@ export default {
       await env.KV.put('subscriptions', JSON.stringify(data));
     }
 
-    // Получаем данные из KV
     const subscriptions = await getSubscriptions();
-    const sub = subscriptions['default'] || { active: true, expire: null };
 
     // ============================================================
     // АДМИН-ПАНЕЛЬ
@@ -63,24 +62,35 @@ export default {
         const action = formData.get('action');
         const subId = formData.get('subscription_id') || 'default';
         const period = formData.get('period');
+        const subName = formData.get('subscription_name') || subId;
+
+        if (action === 'create') {
+          const newId = 'sub_' + Date.now().toString(36);
+          subscriptions[newId] = {
+            name: subName,
+            active: true,
+            expire: period === 'forever' ? null : Date.now() + parseInt(period) * 24 * 60 * 60 * 1000,
+            createdAt: Date.now()
+          };
+          await saveSubscriptions(subscriptions);
+          return new Response(JSON.stringify({ 
+            success: true, 
+            action, 
+            subId: newId, 
+            url: `https://${url.host}/sub/${newId}`,
+            subscription: subscriptions[newId] 
+          }), {
+            headers: { "Content-Type": "application/json; charset=utf-8" }
+          });
+        }
 
         if (!subscriptions[subId]) {
-          subscriptions[subId] = { active: true, expire: null, createdAt: Date.now() };
+          subscriptions[subId] = { name: subId, active: true, expire: null, createdAt: Date.now() };
         }
 
         const sub = subscriptions[subId];
 
         switch(action) {
-          case 'create':
-            sub.active = true;
-            sub.createdAt = Date.now();
-            if (period === 'forever') {
-              sub.expire = null;
-            } else {
-              const days = parseInt(period);
-              sub.expire = Date.now() + days * 24 * 60 * 60 * 1000;
-            }
-            break;
           case 'disable':
             sub.active = false;
             break;
@@ -96,6 +106,9 @@ export default {
             }
             sub.active = true;
             break;
+          case 'delete':
+            delete subscriptions[subId];
+            break;
         }
 
         await saveSubscriptions(subscriptions);
@@ -105,13 +118,171 @@ export default {
         });
       }
 
-      return new Response(getAdminPanel(Object.keys(subscriptions), subscriptions), {
+      return new Response(getAdminPanel(subscriptions), {
         headers: { "Content-Type": "text/html; charset=utf-8" }
       });
     }
 
     // ============================================================
-    // ОСНОВНАЯ ЛОГИКА
+    // ОБРАБОТКА ПОДПИСОК /sub/ID
+    // ============================================================
+    const subMatch = path.match(/^\/sub\/([a-zA-Z0-9_]+)$/);
+    if (subMatch) {
+      const subId = subMatch[1];
+      const sub = subscriptions[subId];
+
+      if (!sub) {
+        return new Response('Подписка не найдена', { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+      }
+
+      const isActive = sub.active && (sub.expire === null || Date.now() < sub.expire);
+
+      // ---- Реальные серверы ----
+      const realNodes = [
+        { tag: "de-1", address: "de-new.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇩🇪 Германия", network: "tcp", flow: "xtls-rprx-vision" },
+        { tag: "se-1", address: "se-new.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇸🇪 Швеция", network: "tcp", flow: "xtls-rprx-vision" },
+        { tag: "pl-1", address: "pl.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "sun9-35.userapi.com", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇵🇱 Польша", network: "tcp", flow: "xtls-rprx-vision" },
+        { tag: "ru-1", address: "ru.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "sun9-38.userapi.com", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇷🇺 Россия", network: "tcp", flow: "xtls-rprx-vision" },
+        { tag: "lte-1", address: "hole-nn.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇩🇪 LTE #1", network: "grpc", flow: "", grpcServiceName: "ads.x5.ru" }
+      ];
+
+      const emptyNodes = [
+        {
+          tag: "disabled",
+          address: "0.0.0.0",
+          port: 0,
+          id: "00000000-0000-0000-0000-000000000000",
+          serverName: "disabled",
+          publicKey: "disabled",
+          shortId: "00000000",
+          fingerprint: "none",
+          remarks: "Подписка отключена 🔴",
+          network: "tcp",
+          flow: "",
+          grpcServiceName: ""
+        }
+      ];
+
+      function makeOutbound({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, network, flow, grpcServiceName }) {
+        const outbound = {
+          tag: tag,
+          protocol: "vless",
+          settings: {
+            vnext: [{
+              address: address,
+              port: port,
+              users: [{ id: id, encryption: "none" }]
+            }]
+          },
+          streamSettings: {
+            network: network,
+            security: "reality",
+            realitySettings: {
+              serverName: serverName,
+              show: false,
+              publicKey: publicKey,
+              shortId: shortId,
+              fingerprint: fingerprint
+            }
+          }
+        };
+        if (flow) outbound.settings.vnext[0].users[0].flow = flow;
+        if (network === "grpc") {
+          outbound.streamSettings.grpcSettings = { serviceName: grpcServiceName || "" };
+        } else {
+          outbound.streamSettings.tcpSettings = {};
+        }
+        return outbound;
+      }
+
+      function makeFullConfig(node) {
+        const outbound = makeOutbound(node);
+        return {
+          dns: { servers: ["1.1.1.1", "1.0.0.1"], queryStrategy: "UseIP" },
+          inbounds: [
+            { tag: "socks", port: 10808, listen: "127.0.0.1", protocol: "socks", settings: { udp: true, auth: "noauth" }, sniffing: { enabled: true, routeOnly: false, destOverride: ["http", "tls", "quic"] } },
+            { tag: "http", port: 10809, listen: "127.0.0.1", protocol: "http", settings: { allowTransparent: false }, sniffing: { enabled: true, routeOnly: false, destOverride: ["http", "tls", "quic"] } }
+          ],
+          observatory: {
+            enableConcurrency: true,
+            probeInterval: "1m",
+            probeUrl: "https://www.google.com/generate_204",
+            subjectSelector: [node.tag]
+          },
+          outbounds: [
+            outbound,
+            { tag: "direct", protocol: "freedom" },
+            { tag: "block", protocol: "blackhole" }
+          ],
+          remarks: node.remarks,
+          routing: {
+            domainMatcher: "hybrid",
+            domainStrategy: "IPIfNonMatch",
+            balancers: [{
+              tag: `bal_${node.tag}`,
+              selector: [node.tag],
+              fallbackTag: "direct",
+              strategy: {
+                type: "leastLoad",
+                settings: {
+                  baselines: ["4s"],
+                  costs: [{ match: node.tag, regexp: false, value: 1 }],
+                  expected: 1,
+                  maxRTT: "6s"
+                }
+              }
+            }],
+            rules: [
+              { type: "field", protocol: ["bittorrent"], outboundTag: "block" },
+              { domain: ["domain:mtalk.google.com", "domain:push.apple.com", "domain:api.push.apple.com"], outboundTag: "direct", type: "field" },
+              { ip: ["17.0.0.0/8"], outboundTag: "direct", type: "field" },
+              { type: "field", inboundTag: ["socks", "http"], network: "tcp,udp", balancerTag: `bal_${node.tag}` }
+            ]
+          }
+        };
+      }
+
+      const nodes = isActive ? realNodes : emptyNodes;
+      const configs = nodes.map(n => makeFullConfig(n));
+      
+      // Трафик считаем только для активных подписок
+      const usedTraffic = isActive ? getCurrentTrafficGB() : 0;
+      const usedTrafficBytes = usedTraffic * 1024 * 1024 * 1024;
+      
+      // ДАТА ИСТЕЧЕНИЯ — реальная из подписки
+      const expireTimestamp = sub.expire ? Math.floor(sub.expire / 1000) : 0;
+      const title = isActive ? sub.name || "Ultra VPN Plus" : "Подписка отключена";
+      const status = isActive ? "active" : "expired";
+      const trafficDisplay = isActive ? usedTraffic + " GB / ∞" : "0 GB / 0 GB";
+
+      const commonHeaders = {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Profile-Title": title,
+        "Subscription-Status": status,
+        "Subscription-Traffic": trafficDisplay,
+        "Subscription-Expire": String(expireTimestamp),
+        "subscription-userinfo": `upload=0; download=${usedTrafficBytes}; total=0; expire=${expireTimestamp}`
+      };
+
+      if (userAgent.includes('INCY')) {
+        const responseBody = {
+          servers: configs,
+          subscription: {
+            title: title,
+            traffic: trafficDisplay,
+            expire: expireTimestamp,
+            status: status
+          }
+        };
+        return new Response(JSON.stringify(responseBody, null, 2), { headers: commonHeaders });
+      } else {
+        return new Response(JSON.stringify(configs, null, 2), { headers: commonHeaders });
+      }
+    }
+
+    // ============================================================
+    // ОСНОВНАЯ ЛОГИКА (трафик)
     // ============================================================
     const START_DATE = new Date('2026-06-28T00:00:00Z');
     const BASE_TRAFFIC_GB = 0;
@@ -120,10 +291,8 @@ export default {
       const seed = date.getFullYear() * 1000000 + (date.getMonth() + 1) * 10000 + date.getDate() * 100 + date.getHours();
       const x = Math.sin(seed) * 10000;
       const r = x - Math.floor(x);
-      
       const dayOfYear = Math.floor((date - START_DATE) / (1000 * 60 * 60 * 24));
       const isBonusDay = (dayOfYear % 10 === 0 && dayOfYear > 0);
-      
       if (isBonusDay) {
         return Math.floor(r * 3) + 10;
       } else {
@@ -144,174 +313,21 @@ export default {
       return total;
     }
 
-    const usedTraffic = getCurrentTrafficGB();
-    const expireTimestamp = 1899589200;
-    const subscriptionTitle = "Ultra VPN Plus";
-
-    const isActive = sub.active && (sub.expire === null || Date.now() < sub.expire);
-    const isExpired = !isActive;
-
-    // ---- Реальные серверы ----
-    const realNodes = [
-      { tag: "de-1", address: "de-new.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇩🇪 Германия", network: "tcp", flow: "xtls-rprx-vision" },
-      { tag: "se-1", address: "se-new.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇸🇪 Швеция", network: "tcp", flow: "xtls-rprx-vision" },
-      { tag: "pl-1", address: "pl.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "sun9-35.userapi.com", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇵🇱 Польша", network: "tcp", flow: "xtls-rprx-vision" },
-      { tag: "ru-1", address: "ru.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "sun9-38.userapi.com", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇷🇺 Россия", network: "tcp", flow: "xtls-rprx-vision" },
-      { tag: "lte-1", address: "hole-nn.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇩🇪 LTE #1", network: "grpc", flow: "", grpcServiceName: "ads.x5.ru" }
-    ];
-
-    // ---- Пустой сервер ----
-    const emptyNodes = [
-      {
-        tag: "disabled",
-        address: "0.0.0.0",
-        port: 0,
-        id: "00000000-0000-0000-0000-000000000000",
-        serverName: "disabled",
-        publicKey: "disabled",
-        shortId: "00000000",
-        fingerprint: "none",
-        remarks: "Подписка отключена 🔴",
-        network: "tcp",
-        flow: "",
-        grpcServiceName: ""
-      }
-    ];
-
-    // ---- Функции для генерации JSON ----
-    function makeOutbound({ tag, address, port, id, serverName, publicKey, shortId, fingerprint, network, flow, grpcServiceName }) {
-      const outbound = {
-        tag: tag,
-        protocol: "vless",
-        settings: {
-          vnext: [
-            {
-              address: address,
-              port: port,
-              users: [
-                {
-                  id: id,
-                  encryption: "none"
-                }
-              ]
-            }
-          ]
-        },
-        streamSettings: {
-          network: network,
-          security: "reality",
-          realitySettings: {
-            serverName: serverName,
-            show: false,
-            publicKey: publicKey,
-            shortId: shortId,
-            fingerprint: fingerprint
-          }
-        }
-      };
-      if (flow) outbound.settings.vnext[0].users[0].flow = flow;
-      if (network === "grpc") {
-        outbound.streamSettings.grpcSettings = { serviceName: grpcServiceName || "" };
-      } else {
-        outbound.streamSettings.tcpSettings = {};
-      }
-      return outbound;
-    }
-
-    function makeFullConfig(node) {
-      const outbound = makeOutbound(node);
-      return {
-        dns: { servers: ["1.1.1.1", "1.0.0.1"], queryStrategy: "UseIP" },
-        inbounds: [
-          { tag: "socks", port: 10808, listen: "127.0.0.1", protocol: "socks", settings: { udp: true, auth: "noauth" }, sniffing: { enabled: true, routeOnly: false, destOverride: ["http", "tls", "quic"] } },
-          { tag: "http", port: 10809, listen: "127.0.0.1", protocol: "http", settings: { allowTransparent: false }, sniffing: { enabled: true, routeOnly: false, destOverride: ["http", "tls", "quic"] } }
-        ],
-        observatory: {
-          enableConcurrency: true,
-          probeInterval: "1m",
-          probeUrl: "https://www.google.com/generate_204",
-          subjectSelector: [node.tag]
-        },
-        outbounds: [
-          outbound,
-          { tag: "direct", protocol: "freedom" },
-          { tag: "block", protocol: "blackhole" }
-        ],
-        remarks: node.remarks,
-        routing: {
-          domainMatcher: "hybrid",
-          domainStrategy: "IPIfNonMatch",
-          balancers: [
-            {
-              tag: `bal_${node.tag}`,
-              selector: [node.tag],
-              fallbackTag: "direct",
-              strategy: {
-                type: "leastLoad",
-                settings: {
-                  baselines: ["4s"],
-                  costs: [{ match: node.tag, regexp: false, value: 1 }],
-                  expected: 1,
-                  maxRTT: "6s"
-                }
-              }
-            }
-          ],
-          rules: [
-            { type: "field", protocol: ["bittorrent"], outboundTag: "block" },
-            { domain: ["domain:mtalk.google.com", "domain:push.apple.com", "domain:api.push.apple.com"], outboundTag: "direct", type: "field" },
-            { ip: ["17.0.0.0/8"], outboundTag: "direct", type: "field" },
-            { type: "field", inboundTag: ["socks", "http"], network: "tcp,udp", balancerTag: `bal_${node.tag}` }
-          ]
-        }
-      };
-    }
-
-    // ---- ОПРЕДЕЛЯЕМ, КОМУ ЧТО ОТДАВАТЬ ----
+    // ============================================================
+    // ВЕБ-ИНТЕРФЕЙС (для браузеров)
+    // ============================================================
     const isBrowser = !accept.includes('application/json') && !userAgent.includes('V2Ray') && !userAgent.includes('Happ') && !userAgent.includes('sing-box') && !userAgent.includes('INCY');
 
-    // Если клиент (не браузер) — отдаём JSON
-    if (!isBrowser) {
-      const nodes = isActive ? realNodes : emptyNodes;
-      const configs = nodes.map(n => makeFullConfig(n));
-      const usedTrafficBytes = usedTraffic * 1024 * 1024 * 1024;
-      const title = isActive ? subscriptionTitle : "Подписка отключена";
-      const status = isActive ? "active" : "expired";
-      const trafficDisplay = isActive ? usedTraffic + " GB / ∞" : "0 GB / 0 GB";
-      const trafficBytes = isActive ? usedTrafficBytes : 0;
+    if (isBrowser) {
+      const sub = subscriptions['default'] || { name: 'Ultra VPN Plus', active: true, expire: null };
+      const isActive = sub.active && (sub.expire === null || Date.now() < sub.expire);
+      const usedTrafficDisplay = getCurrentTrafficGB();
+      const displayNames = [
+        "Германия", "Швеция", "Польша", "Россия", "LTE #1"
+      ];
+      const serverDataJson = JSON.stringify(displayNames);
 
-      const commonHeaders = {
-        "Content-Type": "application/json; charset=utf-8",
-        "Access-Control-Allow-Origin": "*",
-        "Profile-Title": title,
-        "Subscription-Status": status,
-        "Subscription-Traffic": trafficDisplay,
-        "Subscription-Expire": String(expireTimestamp),
-        "subscription-userinfo": `upload=0; download=${trafficBytes}; total=0; expire=${expireTimestamp}`
-      };
-
-      if (userAgent.includes('INCY')) {
-        const responseBody = {
-          servers: configs,
-          subscription: {
-            title: title,
-            traffic: trafficDisplay,
-            expire: expireTimestamp,
-            status: status
-          }
-        };
-        return new Response(JSON.stringify(responseBody, null, 2), { headers: commonHeaders });
-      } else {
-        return new Response(JSON.stringify(configs, null, 2), { headers: commonHeaders });
-      }
-    }
-
-    // ---- ВЕБ-ИНТЕРФЕЙС (для браузеров) ----
-    const displayNames = realNodes.map(n => n.remarks.replace(/^[^\s]+\s/, ''));
-    const serverDataJson = JSON.stringify(displayNames);
-    const usedTrafficDisplay = usedTraffic;
-
-    const html = String.raw`
+      const html = String.raw`
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -801,9 +817,15 @@ if (backBtn) {
 </body>
 </html>`;
 
-    return new Response(html, {
-      headers: { "Content-Type": "text/html; charset=utf-8" }
-    });
+      return new Response(html, {
+        headers: { "Content-Type": "text/html; charset=utf-8" }
+      });
+    }
+
+    // ============================================================
+    // ВСЁ ОСТАЛЬНОЕ — 404
+    // ============================================================
+    return new Response('Страница не найдена', { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
 };
 
@@ -883,10 +905,27 @@ function getLoginPage() {
   `;
 }
 
-function getAdminPanel(subIds, subscriptions) {
-  const sub = subscriptions['default'] || { active: true, expire: null };
-  const expireDate = sub.expire ? new Date(sub.expire).toLocaleDateString('ru-RU') : 'Навсегда';
-  const status = sub.active ? '🟢 Активна' : '🔴 Отключена';
+function getAdminPanel(subscriptions) {
+  const listHtml = Object.entries(subscriptions).map(([id, sub]) => {
+    const status = sub.active ? '🟢' : '🔴';
+    const expireDate = sub.expire ? new Date(sub.expire).toLocaleDateString('ru-RU') : 'Навсегда';
+    const link = `https://${window.location.host}/sub/${id}`;
+    return `
+    <div class="sub-item" id="sub-${id}">
+        <div class="sub-info">
+            <div class="sub-name"><span class="status-dot ${sub.active ? 'active' : 'disabled'}"></span> ${sub.name || id}</div>
+            <div class="sub-details">Статус: ${sub.active ? 'Активна' : 'Отключена'} | Истекает: ${expireDate}</div>
+            <div class="sub-link"><input type="text" value="${link}" readonly onclick="this.select(); document.execCommand('copy')"> <span style="color:#8b95a9;font-size:12px;">(кликни чтобы скопировать)</span></div>
+        </div>
+        <div class="sub-actions">
+            <button onclick="quickAction('${id}','enable')" class="btn btn-success btn-sm">✅ Включить</button>
+            <button onclick="quickAction('${id}','disable')" class="btn btn-danger btn-sm">❌ Отключить</button>
+            <button onclick="quickActionExtend('${id}')" class="btn btn-warning btn-sm">🔄 Продлить</button>
+            <button onclick="quickAction('${id}','delete')" class="btn btn-gray btn-sm" style="background:#ef444433;color:#ef4444;">🗑️</button>
+        </div>
+    </div>
+    `;
+  }).join('');
 
   return `
 <!DOCTYPE html>
@@ -907,7 +946,7 @@ function getAdminPanel(subIds, subscriptions) {
             min-height: 100vh;
             padding: 20px;
         }
-        .container { max-width: 600px; width: 100%; }
+        .container { max-width: 700px; width: 100%; }
         .card {
             background: linear-gradient(145deg, #18181b, #0d0d10);
             border-radius: 28px;
@@ -918,18 +957,6 @@ function getAdminPanel(subIds, subscriptions) {
         }
         h2 { margin-bottom: 4px; }
         .subtitle { color: #8b95a9; font-size: 14px; margin-bottom: 20px; }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            background: #111113;
-            border-radius: 12px;
-            padding: 16px;
-            border: 1px solid #1e1e21;
-            margin-bottom: 20px;
-        }
-        .info-item .label { font-size: 12px; color: #8b95a9; }
-        .info-item .value { font-size: 16px; font-weight: 600; margin-top: 2px; }
         .form-group { margin-bottom: 16px; }
         label { display: block; font-size: 14px; color: #8b95a9; margin-bottom: 4px; }
         select, input {
@@ -942,7 +969,6 @@ function getAdminPanel(subIds, subscriptions) {
             font-size: 14px;
         }
         select:focus, input:focus { outline: none; border-color: #3b82f6; }
-        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn {
             padding: 10px 20px;
             border-radius: 99px;
@@ -951,8 +977,6 @@ function getAdminPanel(subIds, subscriptions) {
             font-size: 14px;
             cursor: pointer;
             transition: 0.3s;
-            flex: 1;
-            min-width: 100px;
         }
         .btn:hover { opacity: 0.8; transform: translateY(-2px); }
         .btn-primary { background: #3b82f6; color: #fff; }
@@ -960,22 +984,41 @@ function getAdminPanel(subIds, subscriptions) {
         .btn-danger { background: #ef4444; color: #fff; }
         .btn-warning { background: #f59e0b; color: #fff; }
         .btn-gray { background: #1e293b; color: #e4e9f0; }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 99px;
-            font-size: 13px;
-            font-weight: 600;
+        .btn-sm { padding: 6px 14px; font-size: 12px; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .sub-item {
+            background: #111113;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #1e1e21;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
         }
-        .status-active { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
-        .status-disabled { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
-        .back-link {
-            display: inline-block;
-            color: #58a6ff;
-            text-decoration: none;
-            margin-bottom: 16px;
+        .sub-item:hover { border-color: #3f3f46; }
+        .sub-name { font-weight: 600; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+        .sub-details { font-size: 13px; color: #8b95a9; margin-top: 4px; }
+        .sub-link input { 
+            background: #0b0e14; 
+            border: none; 
+            color: #58a6ff; 
+            font-size: 13px; 
+            padding: 4px 8px; 
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            max-width: 300px;
         }
+        .sub-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .status-dot.active { background: #22c55e; }
+        .status-dot.disabled { background: #ef4444; }
+        .back-link { color: #58a6ff; text-decoration: none; display: inline-block; margin-bottom: 16px; }
         .back-link:hover { text-decoration: underline; }
+        .empty-text { color: #8b95a9; text-align: center; padding: 20px 0; }
         .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .flex-1 { flex: 1; }
     </style>
@@ -986,80 +1029,73 @@ function getAdminPanel(subIds, subscriptions) {
     
     <div class="card">
         <h2>🔧 Админ-панель</h2>
-        <div class="subtitle">Управление подпиской</div>
+        <div class="subtitle">Управление подписками</div>
         
-        <div class="info-grid">
-            <div class="info-item">
-                <div class="label">Статус</div>
-                <div class="value"><span class="status-badge ${sub.active ? 'status-active' : 'status-disabled'}">${status}</span></div>
-            </div>
-            <div class="info-item">
-                <div class="label">Истекает</div>
-                <div class="value">${expireDate}</div>
-            </div>
-        </div>
-
         <form method="POST" action="/admin?pass=18032014" id="adminForm">
-            <input type="hidden" name="subscription_id" value="default">
+            <input type="hidden" name="action" value="create">
             
-            <div class="form-group">
-                <label>Действие</label>
-                <select name="action" id="actionSelect">
-                    <option value="create">Создать / Продлить</option>
-                    <option value="disable">Отключить</option>
-                    <option value="enable">Включить</option>
-                    <option value="extend">Продлить</option>
-                </select>
+            <div class="row">
+                <div class="flex-1">
+                    <div class="form-group">
+                        <label>Название подписки</label>
+                        <input type="text" name="subscription_name" placeholder="Например: client1" required>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <div class="form-group">
+                        <label>Срок</label>
+                        <select name="period">
+                            <option value="30">1 месяц</option>
+                            <option value="90">3 месяца</option>
+                            <option value="180">6 месяцев</option>
+                            <option value="365">1 год</option>
+                            <option value="forever">Навсегда</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group" id="periodGroup">
-                <label>Срок</label>
-                <select name="period">
-                    <option value="30">1 месяц</option>
-                    <option value="90">3 месяца</option>
-                    <option value="180">6 месяцев</option>
-                    <option value="365">1 год</option>
-                    <option value="forever">Навсегда</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn btn-primary" style="width:100%;">Выполнить</button>
+            <button type="submit" class="btn btn-primary" style="width:100%;">➕ Создать подписку</button>
         </form>
     </div>
 
     <div class="card">
-        <h3 style="font-size:16px; margin-bottom:12px;">📋 Быстрые действия</h3>
-        <div class="btn-group">
-            <button onclick="quickAction('enable')" class="btn btn-success">✅ Включить</button>
-            <button onclick="quickAction('disable')" class="btn btn-danger">❌ Отключить</button>
-            <button onclick="quickAction('extend')" class="btn btn-warning">🔄 Продлить (месяц)</button>
+        <h3 style="font-size:16px; margin-bottom:16px;">📋 Список подписок</h3>
+        <div id="subscriptionsList">
+            ${Object.keys(subscriptions).length === 0 ? '<div class="empty-text">Нет активных подписок</div>' : listHtml}
         </div>
     </div>
 </div>
 
 <script>
-function quickAction(action) {
-    const form = document.getElementById('adminForm');
-    const select = document.getElementById('actionSelect');
-    select.value = action;
-    
-    if (action === 'extend' || action === 'create') {
-        document.getElementById('periodGroup').style.display = 'block';
-    } else {
-        document.getElementById('periodGroup').style.display = 'none';
-    }
-    
+function quickAction(id, action) {
+    if (action === 'delete' && !confirm('Удалить подписку "' + id + '"?')) return;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin?pass=18032014';
+    form.innerHTML = `
+        <input type="hidden" name="action" value="${action}">
+        <input type="hidden" name="subscription_id" value="${id}">
+        <input type="hidden" name="period" value="30">
+    `;
+    document.body.appendChild(form);
     form.submit();
 }
 
-document.getElementById('actionSelect').addEventListener('change', function() {
-    const group = document.getElementById('periodGroup');
-    if (this.value === 'disable' || this.value === 'enable') {
-        group.style.display = 'none';
-    } else {
-        group.style.display = 'block';
-    }
-});
+function quickActionExtend(id) {
+    const days = prompt('На сколько дней продлить? (введите число)', '30');
+    if (!days) return;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin?pass=18032014';
+    form.innerHTML = `
+        <input type="hidden" name="action" value="extend">
+        <input type="hidden" name="subscription_id" value="${id}">
+        <input type="hidden" name="period" value="${days}">
+    `;
+    document.body.appendChild(form);
+    form.submit();
+}
 </script>
 </body>
 </html>
