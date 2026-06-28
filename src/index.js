@@ -414,7 +414,7 @@ export default {
             </div>
             <div class="announcement">
                 <span class="announcement-icon">📢</span>
-                <span class="announcement-text">🔥 Новые серверы в Германии и LTE! Подписка активна до 2030 года. Вопросы в @fhcsupport</span>
+                <span class="announcement-text">🔥 Новые серверы в Германии и LTE!</span>
             </div>
             <button class="btn-status" id="statusBtn">📊 Статус серверов</button>
             <div class="footer">
