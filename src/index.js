@@ -81,14 +81,14 @@ export default {
       return total;
     }
 
-    const realNodes = [
+  const realNodes = [
       { tag: "de-1", address: "de-new.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇩🇪 Германия", flag: "de", network: "tcp", flow: "xtls-rprx-vision" },
       { tag: "se-1", address: "se-new.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇸🇪 Швеция", flag: "se", network: "tcp", flow: "xtls-rprx-vision" },
       { tag: "pl-1", address: "pl.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "sun9-35.userapi.com", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇵🇱 Польша", flag: "pl", network: "tcp", flow: "xtls-rprx-vision" },
+      { tag: "fi-1", address: "fi.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "sun9-36.userapi.com", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇫🇮 Финляндия", flag: "fi", network: "tcp", flow: "xtls-rprx-vision" },
       { tag: "ru-1", address: "ru.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "sun9-38.userapi.com", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇷🇺 Россия", flag: "ru", network: "tcp", flow: "xtls-rprx-vision" },
-      { tag: "nl-1", address: "city-most-5.harknmav.fun", port: 443, id: "a6c595e7-34e2-4762-8947-1ffd25bf99de", serverName: "max.ru", publicKey: "BGW71GlS7ucRWEx-tYF0n2JKvo8uBSLnKdtMMdwBNDY", shortId: "88ec10761480dce4", fingerprint: "qq", remarks: "🇳🇱 Нидерланды", flag: "nl", network: "tcp", flow: "xtls-rprx-vision" },
-      { tag: "tr-1", address: "tr.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "sun9-38.userapi.com", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "firefox", remarks: "🇹🇷 Турция", flag: "tr", network: "tcp", flow: "xtls-rprx-vision" },
-      { tag: "lte-1", address: "hole-nn.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇩🇪 LTE #1", flag: "de", network: "grpc", flow: "", grpcServiceName: "ads.x5.ru" }
+      { tag: "tr-1", address: "tr.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "sun9-38.userapi.com", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "chrome", remarks: "🇹🇷 Турция", flag: "tr", network: "tcp", flow: "xtls-rprx-vision" },
+      { tag: "lte-1", address: "hole-nn.datanode-internal.net", port: 443, id: "9d5e7e04-53e4-4d98-bb26-236c907078a5", serverName: "ads.x5.ru", publicKey: "r6lN34m1nN-xQZ458j5NPD5xJ3_QBF2bGzY4KJEo4ic", shortId: "abbcd128", fingerprint: "qq", remarks: "🇩🇪 LTE", flag: "de", network: "grpc", flow: "", grpcServiceName: "ads.x5.ru" }
     ];
 
     const emptyNodes = [{
