@@ -4,20 +4,5 @@ compatibility_date = "2026-06-27"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "ba6dab8f11ac48afb6f0efd04cbf32c3"
+id = "1b05371dbfb943a4a3c5e008a0030cdd"
 preview_id = ""
-
-[observability]
-enabled = false
-head_sampling_rate = 1
-
-[observability.logs]
-enabled = true
-head_sampling_rate = 1
-persist = true
-invocation_logs = true
-
-[observability.traces]
-enabled = false
-persist = true
-head_sampling_rate = 1
