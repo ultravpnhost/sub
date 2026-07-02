@@ -1,4 +1,5 @@
-name = "host"
+# wrangler.toml
+name = 'host'
 main = "src/index.js"
 compatibility_date = "2026-06-27"
 
